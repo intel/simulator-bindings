@@ -82,8 +82,9 @@ jobs:
 
       - name: Generate SIMICS Documentation
         run: |
-          ispm projects "$(pwd)" --create --ignore-existing-files --non-interactive
-          ./documentation -o docs/book/html/simics --dont-open --project "$(pwd)"
+          mkdir "$(pwd)/project"
+          ispm projects "$(pwd)/project" --create --ignore-existing-files --non-interactive
+          "$(pwd)/project/documentation" -o docs/book/html/simics --dont-open --project "$(pwd)/project"
 
       - name: Generate Crate Documentation
         run: |

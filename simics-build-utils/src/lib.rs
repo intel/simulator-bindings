@@ -310,7 +310,7 @@ pub fn emit_link_info() -> Result<()> {
                 .ok_or_else(|| anyhow!("Could not convert path to string"))?
         );
         println!(
-            "cargo:rustc-link-lib=dylib:-as-needed,+verbatim={}",
+            "cargo:rustc-link-lib=dylib:+verbatim={}",
             libpython
                 .file_name()
                 .ok_or_else(|| anyhow!("No file name found for {}", libpython.display()))?
@@ -338,6 +338,7 @@ pub fn emit_link_info() -> Result<()> {
                 .ok_or_else(|| anyhow!("Could not convert path to string"))?,
         ]
         .join(":");
+        println!("cargo:rustc-env=LD_LIBRARY_PATH={}", ld_library_path);
     }
 
     // NOTE: EVEN with all of the above, a binary built using `cargo build` will not

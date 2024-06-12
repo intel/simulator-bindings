@@ -1,6 +1,5 @@
 #!/bin/bash
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 SIMICS_DIR="${1}"
 
 if [ -z "${SIMICS_DIR}" ]; then
@@ -15,7 +14,7 @@ fi
 
 TEMPDIR=$(mktemp -d)
 
-readarray -t SIMICS_BASE_VERSIONS < <(find "${SIMICS_DIR}" -type d -regex '.*/simics\-[0-9]+\.[0-9]+\.[0-9]+' | sort -V | xargs -i basename {})
+readarray -t SIMICS_BASE_VERSIONS < <(find "${SIMICS_DIR}" -type d -regex '.*/simics\-[0-9]+\.[0-9]+\.[0-9]+' | sort -V | xargs -I{} basename {})
 
 for i in $(seq 1 $((${#SIMICS_BASE_VERSIONS[@]} - 1))); do
     PRE="${SIMICS_BASE_VERSIONS[$i-1]}"
