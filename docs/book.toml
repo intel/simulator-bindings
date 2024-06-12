@@ -7,3 +7,7 @@ language = "en"
 multilingual = false
 src = "src"
 title = "simics-rs"
+
+[output.html]
+
+[output.linkcheck]
