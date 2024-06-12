@@ -124,10 +124,39 @@ The following is an abbreviated changelog for reference purposes.
       - `pcie_link_width_t`
       - `pcie_link_negotiation_t`
 
-6.0.188->6.0.89:
+6.0.188->6.0.189:
     - Add:
       - `Sim_Log_Warning` variant to `log_type_t`
       - `void VT_log_warning(conf_object_t *dev, uint64 grp, const char *str, ...);`
+
+6.0.190->6.0.191:
+  - Add:
+    - `attr_value_t VT_list_registered_atoms(void)`
+
+6.0.191->6.0.192:
+  - Add:
+    - `riscv_instruction_action_interface_t`
+    - `riscv_custom_csr_interface_t`
+
+6.0.192->6.0.193:
+  - Add:
+    - `transaction_trace_atom_access_t`
+    - `cxl_map_interface_t`
+
+6.0.193->6.0.194:
+  - Add:
+    - `xtensa_wwdt_config_interface_t`
+    - `xtensa_wwdt_faultinfo_interface_t`
+
+6.0.194->6.0.195:
+  - Add:
+    - `SIM_PYOBJECT *CORE_object_iterator(conf_object_t *obj);`
+    - `SIM_PYOBJECT *CORE_shallow_object_iterator(conf_object_t *obj, bool expand_arrays);`
+    - `SIM_PYOBJECT *CORE_object_iterator_for_class(conf_object_t *obj);`
+    - `SIM_PYOBJECT *CORE_object_iterator_for_interface(attr_value_t ifaces);`
+  - Remove:
+    - `SIM_object_iterator`
+    - `SIM_shallow_object_iterator`
 
 6.X.X->7.0.0:
     - Remove:
@@ -261,3 +290,15 @@ The following is an abbreviated changelog for reference purposes.
       - `void SIM_printf_warning_vararg(const char *format, va_list ap);`
     - Remove:
       - `pr_err_vararg`
+7.7.0->7.8.0:
+  - Add:
+    - `riscv_instruction_action_interface_t`
+    - `riscv_custom_csr_interface_t`
+    - `attr_value_t VT_list_registered_atoms`
+    - `xtensa_wwdt_config_interface_t`
+    - `xtensa_wwdt_faultinfo_interface_t`
+
+7.9.0->7.10.0:
+  - Remove:
+    - `SIM_object_iterator`
+    - `SIM_shallow_object_iterator`

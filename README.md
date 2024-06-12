@@ -1,35 +1,22 @@
 # Simics Rust API
 
-This repository contains Rust bindings and utilities for Simics and the Simics API.
+This repository contains Rust bindings and utilities for Intel Simics Simulator and the
+Intel Simics Simulator's C API.
 
-## Rust Simics Hello World
+These crates can be used together to build modules which can be loaded into the Intel
+Simics Simulator to add or modify functionality and model devices.
 
-To run the `hello-world` sample:
+## Crates
 
-```sh
-cargo run -p cargo-simics-build -- -p hello-world
-```
-
-Then, in a `simics`/`simics.bat` shell:
-
-```simics
-add-module-directory target/release
-load-module HelloWorld
-@hw = SIM_create_object(SIM_get_class("HelloWorld"), "hw", [])
-@hw.message = "Hello, World!"
-@hw.iface.HelloWorldInterface.say()
-@hw.iface.HelloWorldInterface2.say2()
-@hw2 = SIM_create_object(SIM_get_class("HelloWorld2"), "hw2", [])
-@hw2.message = "Hello, World! (Again)"
-@hw2.iface.HelloWorld2Interface.say()
-@hw2.iface.HelloWorld2Interface2.say2()
-```
-
-You should see:
-
-```txt
-Hello, World!
-test: Hello, World!
-Hello, World! (Again)
-test: Hello, World! (Again)
-```
+- [cargo-simics-build](cargo-simics-build): `cargo build` wrapper for packaging modules
+  into `.ispm` packages.
+- [ispm-wrapper](ispm-wrapper): `ispm` wrapper for running package management commands.
+- [simics](simics): High level (and idiomatic) bindings for the Intel Simics Simulator C
+  API.
+- [simics-api-sys](simics-api-sys): Low level auto-generated bindings for the Intel
+  Simics Simulator C API.
+- [simics-build-utils](simics-build-utils): Build utilities for Simics modules.
+- [simics-macro](simics-macro): Proc-macros for Simics modules.
+- [simics-package](simics-package): Packaging tools for `.ispm` packages.
+- [simics-sign](simics-sign): Module signing tools for Intel Simics Simulator modules.
+- [simics-test](simics-test): Test utilities for Intel Simics Simulator modules.
