@@ -1,6 +1,5 @@
 #!/bin/bash
 
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 SIMICS_DIR="${1}"
 
 if [ -z "${SIMICS_DIR}" ]; then

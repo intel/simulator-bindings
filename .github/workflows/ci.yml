@@ -114,11 +114,11 @@ jobs:
 
       - name: Install SIMICS Build
         run: |
-          cargo install --path simics-rs/cargo-simics-build
+          cargo install --path cargo-simics-build
 
-      - name: Build TSFFS Package
+      - name: Build Package
         run: |
-          cargo simics-build -r
+          cargo build
 
       - name: CT39 - Clippy Check Project
         run: |
@@ -139,7 +139,7 @@ jobs:
 
       - name: Test Project
         run: |
-          SIMICS_TEST_CLEANUP_EACH=1 SIMICS_TEST_LOCAL_PACKAGES_ONLY=1 cargo test --no-fail-fast -r _latest || ( echo "❗ Tests failed" && exit 1 )
+          SIMICS_TEST_CLEANUP_EACH=1 SIMICS_TEST_LOCAL_PACKAGES_ONLY=1 cargo test --no-fail-fast || ( echo "❗ Tests failed" && exit 1 )
           echo "✅ Tests passed"
 
       - name: Build Docs
@@ -225,16 +225,10 @@ jobs:
         with:
           lfs: true
 
-      - name: Setup, Build, and Install TSFFS
+      - name: Setup, Build, and Install
         run: |
-          cargo install --path simics-rs/cargo-simics-build
-          cargo simics-build -r
-
-      - name: Upload Distribution Package
-        uses: actions/upload-artifact@v4
-        with:
-          name: simics-pkg-31337-win64
-          path: target/release/simics-pkg-31337-*-win64.ispm
+          cargo install --path cargo-simics-build
+          cargo test
 
   additional_sdl_checks:
     name: Perform Additional SDL Checks
