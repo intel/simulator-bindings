@@ -1,0 +1,293 @@
+---
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+env:
+  CARGO_TERM_COLOR: always
+  PUBLIC_SIMICS_PKGS_URL_WINDOWS: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/ead79ef5-28b5-48c7-8d1f-3cde7760798f/simics-6-packages-2024-05-win64.ispm"
+  PUBLIC_SIMICS_ISPM_URL_WINDOWS: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/ead79ef5-28b5-48c7-8d1f-3cde7760798f/intel-simics-package-manager-1.8.3-win64.exe"
+  PUBLIC_SIMICS_PKGS_URL: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/ead79ef5-28b5-48c7-8d1f-3cde7760798f/simics-6-packages-2024-05-linux64.ispm"
+  PUBLIC_SIMICS_ISPM_URL: "https://registrationcenter-download.intel.com/akdlm/IRC_NAS/ead79ef5-28b5-48c7-8d1f-3cde7760798f/intel-simics-package-manager-1.8.3-linux64.tar.gz"
+  PUBLIC_SIMICS_PACKAGE_VERSION_1000: "6.0.185"
+  PUBLIC_SIMICS_ISPM_VERSION: "1.8.3"
+  MINGW_URL: "https://github.com/brechtsanders/winlibs_mingw/releases/download/13.2.0-16.0.6-11.0.0-ucrt-r1/winlibs-x86_64-posix-seh-gcc-13.2.0-llvm-16.0.6-mingw-w64ucrt-11.0.0-r1.7z"
+  MINGW_VERSION: "13.2.0-16.0.6-11.0.0-ucrt-r1"
+
+jobs:
+  super_lint:
+    name: Run Super Linter
+    container: github/super-linter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          lfs: false
+
+      - name: (CT222) (E/C) - Use hadolint to evaluate Dockerfile configuration
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Rust validation is handled by build_and_test
+          VALIDATE_RUST_2015: false
+          VALIDATE_RUST_2018: false
+          VALIDATE_RUST_2021: false
+          VALIDATE_RUST_CLIPPY: false
+          # We have no non-example CPP in the codebase
+          VALIDATE_CPP: false
+          VALIDATE_CLANG_FORMAT: false
+          VALIDATE_JSCPD: false
+          # This is way too pedantic
+          VALIDATE_NATURAL_LANGUAGE: false
+          # Dont flake8/mypy/pylint because our only python files attempt to import
+          # simics and fail
+          VALIDATE_PYTHON_FLAKE8: false
+          VALIDATE_PYTHON_MYPY: false
+          VALIDATE_PYTHON_PYLINT: false
+          # If gitleaks finds anything, it is too late. Suggested in developer docs in
+          # pre-commit instead. Too many false positives (X509VerifyCert, for example)
+          VALIDATE_GITLEAKS: false
+        run: |
+          /action/lib/linter.sh || ( echo "❗ [CT222] Super linter found an issue (possibly Hadolint)" && exit 1 )
+          echo "✅ [CT222] Hadolint Dockerfile check passed"
+
+  build_and_test:
+    name: Build and Test (Linux)
+    container: fedora:38
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add ISPM to PATH
+        run: |
+          echo "${HOME}/simics/ispm/" >> "${GITHUB_PATH}"
+
+      - name: Install Dependencies
+        run: |
+          dnf -y update && \
+          dnf -y install \
+            alsa-lib atk clang clang-libs clang-resource-filesystem \
+            clang-tools-extra cmake cups curl dosfstools g++ gcc git \
+            git-lfs glibc-devel glibc-devel.i686 glibc-static \
+            glibc-static.i686 gtk3 jq lld lld-devel lld-libs llvm llvm-libs \
+            llvm-static make mesa-libgbm mtools ninja-build openssl \
+            openssl-devel openssl-libs python3 python3-pip yamllint
+
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          toolchain: nightly
+          components: rustfmt,clippy,miri
+
+      - name: Cache SIMICS Dependencies
+        id: cache-simics-packages
+        uses: actions/cache@v4
+        with:
+          path: ~/simics
+          key: simics-linux-${{ env.PUBLIC_SIMICS_PACKAGE_VERSION_1000 }}-${{ env.PUBLIC_SIMICS_ISPM_VERSION }}
+
+      - name: Install SIMICS (External)
+        if: ${{ steps.cache-simics-packages.outputs.cache-hit != 'true' }}
+        run: |
+          mkdir -p "${HOME}/simics/ispm/" && \
+          curl -L -o "${HOME}/simics/ispm.tar.gz" \
+              "${{ env.PUBLIC_SIMICS_ISPM_URL }}" && \
+          curl -L -o "${HOME}/simics/simics.ispm" \
+              "${{ env.PUBLIC_SIMICS_PKGS_URL }}" && \
+          tar -C "${HOME}/simics/ispm" --strip-components=1 \
+              -xvf "${HOME}/simics/ispm.tar.gz"
+
+      - name: Set up SIMICS Install Directory
+        run: |
+          ispm settings install-dir "${HOME}/simics"
+
+      - name: Install SIMICS Packages
+        if: ${{ steps.cache-simics-packages.outputs.cache-hit != 'true' }}
+        run: |
+          ispm packages --install-bundle "${HOME}/simics/simics.ispm" \
+              --non-interactive --trust-insecure-packages
+
+      - name: Install SIMICS Build
+        run: |
+          cargo install --path simics-rs/cargo-simics-build
+
+      - name: Build TSFFS Package
+        run: |
+          cargo simics-build -r
+
+      - name: CT39 - Clippy Check Project
+        run: |
+          cargo clippy > clippy.log \
+            || ( echo "❗ [CT39 (1/2)] Failed clippy static analysis checks" && exit 1 )
+          cargo clippy --message-format=json 2> /dev/null | jq 'select(.reason == "compiler-message")' 2>/dev/null > clippy.json
+          cargo clippy --message-format=json > clippy-full.json 2>&1
+          echo "✅ [CT39 (1/2)] Passed clippy static analysis checks"
+
+      - name: Upload Clippy Check Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: clippy-json
+          path: |
+            clippy.json
+            clippy-full.json
+            clippy.log
+
+      - name: Test Project
+        run: |
+          SIMICS_TEST_CLEANUP_EACH=1 SIMICS_TEST_LOCAL_PACKAGES_ONLY=1 cargo test --no-fail-fast -r _latest || ( echo "❗ Tests failed" && exit 1 )
+          echo "✅ Tests passed"
+
+      - name: Build Docs
+        run: |
+          cargo doc --workspace --no-deps
+
+  build_windows:
+    name: Build and Test (Windows)
+    runs-on: windows-latest
+    steps:
+      - name: Add ISPM and MinGW to PATH
+        run: |
+          set PATH $env:PATH
+          "C:\MinGW\bin" | Out-File -FilePath $env:GITHUB_PATH
+          "C:\ISPM\" | Out-File -FilePath $env:GITHUB_PATH -Append
+          "$PATH" | Out-File -FilePath $env:GITHUB_PATH -Append
+          echo "Current PATH: " $env:GITHUB_PATH
+
+      - name: Cache MinGW
+        id: cache-mingw
+        uses: actions/cache@v4
+        with:
+          path: C:\MinGW\
+          key: mingw-${{ env.MINGW_VERSION }}
+
+      - name: Download and Extract MinGW-w64
+        if: ${{ steps.cache-mingw.outputs.cache-hit != 'true' }}
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          echo "Downloading MinGW"
+          Invoke-WebRequest -URI ${{ env.MINGW_URL }} -OutFile mingw.7z
+          echo "Downloaded MinGW. Extracting MinGW."
+          7z x mingw.7z -oC:\mingw-w64\
+          echo "Extracted MinGW."
+          mv C:\mingw-w64\mingw64\ C:\MinGW\
+
+      - name: Download and Install Rust
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          echo "Downloading Rustup"
+          Invoke-WebRequest -URI https://win.rustup.rs/x86_64 -OutFile C:\rustup-init.exe
+          echo "Installing Rust"
+          C:\rustup-init.exe --default-toolchain nightly --default-host x86_64-pc-windows-gnu -y
+
+      - name: Cache SIMICS
+        id: cache-simics-packages-windows
+        uses: actions/cache@v4
+        with:
+          path: |
+            C:\ISPM\
+            C:\SIMICS\
+          key: simics-windows-${{ env.PUBLIC_SIMICS_PACKAGE_VERSION_1000 }}-${{ env.PUBLIC_SIMICS_ISPM_VERSION }}
+
+      # ispm-installer.exe is a NSIS installer for the elctron build. We want the
+      # default options, so we pass /S to install silently and /D to change directory.
+      # NOTE that the argument to /D must never contain quotes!:
+      # https://nsis.sourceforge.io/Docs/Chapter3.html#installerusage
+      #
+      # NOTE: We use | Out-Null on the installer command to make powershell wait for it
+      # to actually finish instead of forking it to the background
+      - name: Download and Install ISPM
+        shell: powershell
+        if: ${{ steps.cache-simics-packages-windows.outputs.cache-hit != 'true' }}
+        run: |
+          Invoke-WebRequest -URI ${{ env.PUBLIC_SIMICS_ISPM_URL_WINDOWS }} -OutFile C:\ispm-installer.exe
+          C:\ispm-installer.exe /S /D=C:\ISPM\ | Out-Null
+
+      - name: Set SIMICS Install Directory
+        run: |
+          ispm.exe settings install-dir C:\SIMICS\
+
+      - name: Download and Install SIMICS Packages
+        if: ${{ steps.cache-simics-packages-windows.outputs.cache-hit != 'true' }}
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          echo "Downloading Simics 6 Packages"
+          Invoke-WebRequest -URI ${{ env.PUBLIC_SIMICS_PKGS_URL_WINDOWS }} -OutFile C:\simics-6-packages.ispm
+          echo "Installing ISPM packages"
+          ispm.exe packages --install-bundle C:\simics-6-packages.ispm --non-interactive --trust-insecure-packages
+          echo "Installed ISPM packages"
+
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Setup, Build, and Install TSFFS
+        run: |
+          cargo install --path simics-rs/cargo-simics-build
+          cargo simics-build -r
+
+      - name: Upload Distribution Package
+        uses: actions/upload-artifact@v4
+        with:
+          name: simics-pkg-31337-win64
+          path: target/release/simics-pkg-31337-*-win64.ispm
+
+  additional_sdl_checks:
+    name: Perform Additional SDL Checks
+    container: fedora:38
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Dependencies
+        run: |
+          dnf -y update && \
+          dnf -y install \
+            g++ gcc git git-lfs glibc-devel make openssl openssl-devel openssl-libs
+
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          toolchain: nightly
+          components: rustfmt,clippy,miri
+
+      - name: Install Cargo Plugins
+        run: |
+          cargo install cargo-audit cargo-outdated cargo-unmaintained
+
+      - name: (CT247/CT200) (N/C) - Scan 3rd-Party Components for Vulnerabilities
+        run: |
+          # shellcheck disable=SC2086,SC2143
+          LATEST="$(find '.github/dependabot' -name '*.csv' -print0 \
+            | xargs -r -0 ls -1 -t \
+            | head -n 1)"
+
+          if ! find '.github/dependabot' -name '*.csv' -mtime -14 | grep -q '.'; then
+              echo "❗ [CT247/CT200] No dependabot report found from last 2 weeks. Run ./scripts/dependabot.sh."
+              exit 1
+          fi
+
+          if tail -n+2 "${LATEST}" | grep -qv ".github/actions/toolchain"; then
+              cat "${LATEST}"
+              echo "❗ [CT247/CT200] Vulnerabilities found outside of github actions. Please remediate them."
+              exit 1
+          fi
+          echo "✅ [CT247/CT200] No dependabot vulnerabilities found"
+
+      - name: (T186) (N/C) - Use recommended settings and latest patches for third party libraries and software
+        run: |
+          cargo generate-lockfile
+
+          cargo audit
+
+          if ! cargo outdated --exit-code 1; then
+              echo "❗ [T186] Out of date third party dependencies found"
+              exit 1
+          fi
+
+          echo "✅ [T186] No outdated or vulnerable third party dependencies found"
