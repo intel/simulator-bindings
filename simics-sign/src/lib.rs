@@ -533,7 +533,7 @@ mod test {
             .join("target")
             .join(TARGET_DIR)
             .join("hello_world.dll");
-        let _signed = Sign::sign(hello_world).unwrap().data().unwrap();
+        let _signed = Sign::new(hello_world).unwrap().data().unwrap();
     }
 
     #[test]
