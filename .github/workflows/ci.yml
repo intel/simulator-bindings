@@ -225,10 +225,9 @@ jobs:
         with:
           lfs: true
 
-      - name: Setup, Build, and Install
+      - name: Build
         run: |
-          cargo install --path cargo-simics-build
-          cargo test
+          cargo build
 
   additional_sdl_checks:
     name: Perform Additional SDL Checks

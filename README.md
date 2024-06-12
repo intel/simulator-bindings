@@ -20,3 +20,11 @@ Simics Simulator to add or modify functionality and model devices.
 - [simics-package](simics-package): Packaging tools for `.ispm` packages.
 - [simics-sign](simics-sign): Module signing tools for Intel Simics Simulator modules.
 - [simics-test](simics-test): Test utilities for Intel Simics Simulator modules.
+
+## Documentation
+
+The crate documentation can be found at
+[intel.github.io/simics-rs/crates](https://intel.github.io/simics-rs/crates).
+
+The current public Intel Simics Simulator documentation can be found at
+[intel.github.io/simics-rs/simics](https://intel.github.io/simics-rs/simics).
