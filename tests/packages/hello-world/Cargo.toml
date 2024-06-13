@@ -7,10 +7,10 @@ version = "6.0.0"
 authors = ["Rowan Hart <rowan.hart@intel.com>"]
 edition = "2021"
 description = "A simple module demonstrating the Intel Simics Simulator API"
-documentation = ""
+documentation = "https://intel.github.io/simulator-bindings/crates/hello_world/"
 readme = "../README.md"
-homepage = ""
-repository = ""
+homepage = "https://github.com/intel/simulator-bindings"
+repository = "https://github.com/intel/simulator-bindings"
 license = "Apache-2.0"
 keywords = ["simics", "simulator", "intel", "x86", "risc", "modeling"]
 categories = [
@@ -25,16 +25,18 @@ categories = [
 crate-type = ["cdylib"]
 
 [dependencies]
-simics = { version = "0.1.0", path = "../../../simics" }
 ffi = "0.1.1"
 
+simics = { version = "0.1.0", workspace = true }
+
 [build-dependencies]
-simics-build-utils = { version = "0.1.0", path = "../../../simics-build-utils" }
+simics-build-utils = { version = "0.1.0", workspace = true }
 
 [dev-dependencies]
-ispm-wrapper = { version = "0.1.0", path = "../../../ispm-wrapper" }
-simics-test = { version = "0.1.0", path = "../../../simics-test" }
 anyhow = "1.0.86"
 command-ext = "0.1.2"
 indoc = "2.0.5"
 versions = { version = "6.2.0", features = ["serde"] }
+
+ispm-wrapper = { version = "0.1.0", workspace = true }
+simics-test = { version = "0.1.0", workspace = true }

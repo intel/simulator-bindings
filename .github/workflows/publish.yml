@@ -1,0 +1,36 @@
+---
+name: Publish Crates
+
+on:
+  push:
+    tags:
+      - v*
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+
+      - name: cargo-release Cache
+        id: cargo_release_cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.cargo/bin/cargo-release
+          key: ${{ runner.os }}-cargo-release
+
+      - name: cargo login
+        run: cargo login ${{ secrets.CRATES_IO_TOKEN }}
+
+      - name: Publish
+        run: |
+          cargo publish --package ispm-wrapper
+          cargo publish --package simics-package
+          cargo publish --package simics-sign
+          cargo publish --package cargo-simics-build
+          cargo publish --package simics-api-sys
+          cargo publish --package simics-build-utils
+          cargo publish --package simics-macro
+          cargo publish --package simics
+          cargo publish --package simics-test

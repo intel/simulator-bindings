@@ -6,11 +6,11 @@ name = "simics-sign"
 version = "0.1.0"
 authors = ["Rowan Hart <rowan.hart@intel.com>"]
 edition = "2021"
-description = "Intel Simics Simulator module signing tools"
-documentation = ""
+description = "Intel® Simics® Simulator module signing tools"
+documentation = "https://intel.github.io/simulator-bindings/crates/simics_sign/"
 readme = "../README.md"
-homepage = ""
-repository = ""
+homepage = "https://github.com/intel/simulator-bindings"
+repository = "https://github.com/intel/simulator-bindings"
 license = "Apache-2.0"
 keywords = ["simics", "simulator", "intel", "x86", "risc", "modeling"]
 categories = [
@@ -22,6 +22,6 @@ categories = [
 ]
 
 [dependencies]
-object = "0.36.0"
 chrono = "0.4.38"
+object = "0.36.0"
 thiserror = "1.0.61"

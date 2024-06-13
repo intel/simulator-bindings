@@ -50,14 +50,15 @@ default-members = [
 exclude = []
 
 [workspace.dependencies]
-ispm-wrapper = { path = "ispm-wrapper" }
-simics-api-sys = { path = "simics-api-sys" }
-simics-macro = { path = "simics-macro" }
-simics = { path = "simics", features = ["link"] }
-simics-sign = { path = "simics-sign" }
-simics-package = { path = "simics-package" }
-simics-test = { path = "simics-test" }
-simics-build-utils = { path = "simics-build-utils" }
+cargo-simics-build = { version = "0.1.0", path = "cargo-simics-build" }
+ispm-wrapper = { version = "0.1.0", path = "ispm-wrapper" }
+simics-api-sys = { version = "0.1.0", path = "simics-api-sys" }
+simics-macro = { version = "0.1.0", path = "simics-macro" }
+simics = { version = "0.1.0", path = "simics", features = ["link"] }
+simics-sign = { version = "0.1.0", path = "simics-sign" }
+simics-package = { version = "0.1.0", path = "simics-package" }
+simics-test = { version = "0.1.0", path = "simics-test" }
+simics-build-utils = { version = "0.1.0", path = "simics-build-utils" }
 
 [profile.dev]
 # NOTE: rparth set to true to allow cargo test/cargo run to find libsimics-common,
