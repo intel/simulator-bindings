@@ -940,17 +940,39 @@ fn main() -> Result<()> {
             e
         )
     })?;
-    let mut allowlist = SIMICS_API_ITEMS.to_vec();
-
-    // Explicitly allow hap definitions which we added ourselves
-    allowlist.push(".*_HAP_NAME");
-    allowlist.push(".*_hap_callback");
 
     let bindings = if var("SIMICS_BINDINGS_NOCLEAN").is_ok() {
+        let allowlist = &[
+            // Explicitly allow hap definitions which we added ourselves
+            ".*_HAP_NAME",
+            ".*_hap_callback",
+            // Explicitly allow interface definitions
+            ".*_INTERFACE",
+            ".*_interface_t",
+            ".*_interface",
+            // Explicitly allow all SIM_, VT_, and CORE_ functions
+            "SIM_.*",
+            "VT_.*",
+            "CORE_.*",
+        ];
+
         // If SIMICS_BINDINGS_NOCLEAN is set, we do not use the allowlist. This improves
         // build times significantly.
-        SimicsBindings::new(&base_dir_path, &[], &[])?
+        SimicsBindings::new(&base_dir_path, &[], allowlist)?
     } else {
+        let mut allowlist = SIMICS_API_ITEMS.to_vec();
+
+        // Explicitly allow hap definitions which we added ourselves
+        allowlist.push(".*_HAP_NAME");
+        allowlist.push(".*_hap_callback");
+        // Explicitly allow interface definitions
+        allowlist.push(".*_INTERFACE");
+        allowlist.push(".*_interface_t");
+        allowlist.push(".*_interface");
+        // Explicitly allow all SIM_, VT_, and CORE_ functions
+        allowlist.push("SIM_.*");
+        allowlist.push("VT_.*");
+        allowlist.push("CORE_.*");
         // If SIMICS_BINDINGS_NOCLEAN is not set, we use the allowlist. This is set when
         // publishing so that documentation is tidy.
         SimicsBindings::new(&base_dir_path, &[], &allowlist)?
@@ -1010,6 +1032,13 @@ fn main() -> Result<()> {
 //     -s ~/simics/simics-6.0.189 \
 //     -s ~/simics/simics-6.0.190 \
 //     -s ~/simics/simics-6.0.191 \
+//     -s ~/simics/simics-6.0.192 \
+//     -s ~/simics/simics-6.0.193 \
+//     -s ~/simics/simics-6.0.194 \
+//     -s ~/simics/simics-6.0.195 \
+//     -s ~/simics/simics-6.0.196 \
+//     -s ~/simics/simics-6.0.197 \
+//     -s ~/simics/simics-6.0.198 \
 //     -s ~/simics/simics-7.0.0 \
 //     -s ~/simics/simics-7.1.0 \
 //     -s ~/simics/simics-7.2.0 \
@@ -1022,6 +1051,7 @@ fn main() -> Result<()> {
 //     -s ~/simics/simics-7.9.0 \
 //     -s ~/simics/simics-7.10.0 \
 //     -s ~/simics/simics-7.11.0 \
+//     -s ~/simics/simics-7.12.0 \
 //     -o simics-api-sys/simics_api_items.rs
 // ```
 //
