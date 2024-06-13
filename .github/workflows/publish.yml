@@ -25,12 +25,20 @@ jobs:
 
       - name: Publish
         run: |
-          cargo publish --package ispm-wrapper
-          cargo publish --package simics-package
-          cargo publish --package simics-sign
-          cargo publish --package cargo-simics-build
-          cargo publish --package simics-api-sys
-          cargo publish --package simics-build-utils
-          cargo publish --package simics-macro
-          cargo publish --package simics
-          cargo publish --package simics-test
+          cargo publish --no-verify --package ispm-wrapper
+          sleep 120
+          cargo publish --no-verify --package simics-package
+          sleep 120
+          cargo publish --no-verify --package simics-sign
+          sleep 120
+          cargo publish --no-verify --package cargo-simics-build
+          sleep 120
+          cargo publish --no-verify --package simics-api-sys
+          sleep 120
+          cargo publish --no-verify --package simics-build-utils
+          sleep 120
+          cargo publish --no-verify --package simics-macro
+          sleep 120
+          cargo publish --no-verify --package simics
+          sleep 120
+          cargo publish --no-verify --package simics-test
