@@ -52,9 +52,9 @@ exclude = []
 [workspace.dependencies]
 cargo-simics-build = { version = "0.1.0", path = "cargo-simics-build" }
 ispm-wrapper = { version = "0.1.0", path = "ispm-wrapper" }
-simics-api-sys = { version = "0.1.0", path = "simics-api-sys" }
+simics-api-sys = { version = "0.1.1", path = "simics-api-sys" }
 simics-macro = { version = "0.1.0", path = "simics-macro" }
-simics = { version = "0.1.0", path = "simics", features = ["link"] }
+simics = { version = "0.1.1", path = "simics" }
 simics-sign = { version = "0.1.0", path = "simics-sign" }
 simics-package = { version = "0.1.0", path = "simics-package" }
 simics-test = { version = "0.1.0", path = "simics-test" }

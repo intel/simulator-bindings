@@ -34,5 +34,5 @@ quote = "1.0.36"
 syn = { version = "2.0.66", features = ["full"] }
 
 ispm-wrapper = { version = "0.1.0", workspace = true }
-simics-api-sys = { version = "0.1.0", workspace = true }
+simics-api-sys = { version = "0.1.1", workspace = true }
 simics-sign = { version = "0.1.0", workspace = true }
