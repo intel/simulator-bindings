@@ -7,10 +7,10 @@ version = "0.1.0"
 authors = ["Rowan Hart <rowan.hart@intel.com>"]
 edition = "2021"
 description = "Intel Simics Simulator module testing tools"
-documentation = ""
+documentation = "https://intel.github.io/simulator-bindings/crates/simics_test/"
 readme = "../README.md"
-homepage = ""
-repository = ""
+homepage = "https://github.com/intel/simulator-bindings"
+repository = "https://github.com/intel/simulator-bindings"
 license = "Apache-2.0"
 keywords = ["simics", "simulator", "intel", "x86", "risc", "modeling"]
 categories = [
@@ -22,8 +22,6 @@ categories = [
 ]
 
 [dependencies]
-ispm-wrapper = { version = "0.1.0", path = "../ispm-wrapper" }
-cargo-simics-build = { version = "0.1.0", path = "../cargo-simics-build" }
 anyhow = "1.0.86"
 cargo-subcommand = "0.12.0"
 cargo_metadata = "0.18.1"
@@ -33,3 +31,6 @@ indoc = "2.0.5"
 typed-builder = "0.18.2"
 versions = { version = "6.2.0", features = ["serde"] }
 walkdir = "2.5.0"
+
+cargo-simics-build = { version = "0.1.0", workspace = true }
+ispm-wrapper = { version = "0.1.0", workspace = true }

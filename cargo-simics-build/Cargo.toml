@@ -6,11 +6,11 @@ name = "cargo-simics-build"
 version = "0.1.0"
 authors = ["Rowan Hart <rowan.hart@intel.com>"]
 edition = "2021"
-description = "Build utility for Simics modules"
-documentation = ""
+description = "Build utility for Intel® Simics® Simulator modules"
+documentation = "https://intel.github.io/simulator-bindings/crates/cargo_simics_build/"
 readme = "../README.md"
-homepage = ""
-repository = ""
+homepage = "https://github.com/intel/simulator-bindings"
+repository = "https://github.com/intel/simulator-bindings"
 license = "Apache-2.0"
 keywords = ["simics", "simulator", "intel", "x86", "risc", "modeling"]
 categories = [
@@ -22,14 +22,14 @@ categories = [
 ]
 
 [dependencies]
-simics-sign = { version = "0.1.0", path = "../simics-sign" }
-
 anyhow = "1.0.86"
 artifact-dependency = "0.1.7"
-clap = { version = "4.5.4", features = ["derive"] }
 cargo-subcommand = { version = "0.12.0", features = ["clap"] }
+clap = { version = "4.5.4", features = ["derive"] }
 command-ext = "0.1.2"
-simics-package = { version = "0.1.0", path = "../simics-package" }
 itertools = "0.13.0"
-ispm-wrapper = { version = "0.1.0", path = "../ispm-wrapper" }
 thiserror = "1.0.61"
+
+ispm-wrapper = { version = "0.1.0", workspace = true }
+simics-package = { version = "0.1.0", workspace = true }
+simics-sign = { version = "0.1.0", workspace = true }
