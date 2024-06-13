@@ -11,8 +11,8 @@ Simics® Simulator to add or modify functionality and model devices.
 - [cargo-simics-build](cargo-simics-build): `cargo build` wrapper for packaging modules
   into `.ispm` packages.
 - [ispm-wrapper](ispm-wrapper): `ispm` wrapper for running package management commands.
-- [simics](simics): High level (and idiomatic) bindings for the Intel® Simics® Simulator C
-  API.
+- [simics](simics): High level (and idiomatic) bindings for the Intel® Simics® Simulator
+  C API.
 - [simics-api-sys](simics-api-sys): Low level auto-generated bindings for the Intel
   Simics Simulator C API.
 - [simics-build-utils](simics-build-utils): Build utilities for simulator modules.
