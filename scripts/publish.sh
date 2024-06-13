@@ -3,6 +3,8 @@
 # Copyright (C) 2024 Intel Corporation
 # SPDX-License-Identifier: Apache-2.0
 
+set -e
+
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 SECRETS_FILE="${SCRIPT_DIR}/../.secrets"
 
@@ -25,11 +27,19 @@ if ! command -v cargo &>/dev/null; then
 fi
 
 cargo publish --token "${CRATES_IO_TOKEN}" --package ispm-wrapper
+sleep 120
 cargo publish --token "${CRATES_IO_TOKEN}" --package simics-package
+sleep 120
 cargo publish --token "${CRATES_IO_TOKEN}" --package simics-sign
+sleep 120
 cargo publish --token "${CRATES_IO_TOKEN}" --package cargo-simics-build
+sleep 120
 cargo publish --token "${CRATES_IO_TOKEN}" --package simics-api-sys
+sleep 120
 cargo publish --token "${CRATES_IO_TOKEN}" --package simics-build-utils
+sleep 120
 cargo publish --token "${CRATES_IO_TOKEN}" --package simics-macro
+sleep 120
 cargo publish --token "${CRATES_IO_TOKEN}" --package simics
+sleep 120
 cargo publish --token "${CRATES_IO_TOKEN}" --package simics-test

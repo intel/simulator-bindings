@@ -3,7 +3,7 @@
 
 [package]
 name = "simics"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Rowan Hart <rowan.hart@intel.com>"]
 edition = "2021"
 description = "Intel® Simics® Simulator bindings in high level, idiomatic Rust"
@@ -12,7 +12,7 @@ readme = "../README.md"
 homepage = "https://github.com/intel/simulator-bindings/"
 repository = "https://github.com/intel/simulator-bindings/"
 license = "Apache-2.0"
-keywords = ["simics", "simulator", "intel", "x86", "risc", "modeling"]
+keywords = ["simics", "simulator", "intel", "x86", "modeling"]
 categories = [
     "simulation",
     "virtualization",
@@ -32,7 +32,7 @@ typed-builder = "0.18.2"
 versions = { version = "6.2.0", features = ["serde"] }
 walkdir = "2.5.0"
 
-simics-api-sys = { version = "0.1.0", workspace = true }
+simics-api-sys = { version = "0.1.1", workspace = true }
 simics-macro = { version = "0.1.0", workspace = true }
 
 [build-dependencies]
@@ -44,7 +44,7 @@ quote = "1.0.36"
 syn = "2.0.66"
 versions = "6.2.0"
 
-simics-api-sys = { version = "0.1.0", workspace = true }
+simics-api-sys = { version = "0.1.1", workspace = true }
 simics-macro = { version = "0.1.0", workspace = true }
 simics-build-utils = { version = "0.1.0", workspace = true }
 

@@ -12,7 +12,7 @@ readme = "../README.md"
 homepage = "https://github.com/intel/simulator-bindings"
 repository = "https://github.com/intel/simulator-bindings"
 license = "Apache-2.0"
-keywords = ["simics", "simulator", "intel", "x86", "risc", "modeling"]
+keywords = ["simics", "simulator", "intel", "x86", "modeling"]
 categories = [
     "simulation",
     "virtualization",
@@ -26,4 +26,4 @@ anyhow = "1.0.86"
 versions = { version = "6.2.0", features = ["serde"] }
 
 ispm-wrapper = { version = "0.1.0", workspace = true }
-simics-api-sys = { version = "0.1.0", workspace = true }
+simics-api-sys = { version = "0.1.1", workspace = true }
