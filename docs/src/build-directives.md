@@ -12,7 +12,7 @@ functionality depending on the version compiled against, you can call
 `emit_build_directives` in your `build.rs` script and use the directives like:
 
 ```rust
-#[cfg(any(simics_version_6_0_191, simics_version_7))]
+#[cfg(any(simics_version = "6.0.191", simics_version = "7"))]
 ```
 
 ## Changelog
