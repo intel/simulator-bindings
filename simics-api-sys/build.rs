@@ -1039,6 +1039,15 @@ fn main() -> Result<()> {
 //     -s ~/simics/simics-6.0.196 \
 //     -s ~/simics/simics-6.0.197 \
 //     -s ~/simics/simics-6.0.198 \
+//     -s ~/simics/simics-6.0.199 \
+//     -s ~/simics/simics-6.0.200 \
+//     -s ~/simics/simics-6.0.201 \
+//     -s ~/simics/simics-6.0.202 \
+//     -s ~/simics/simics-6.0.203 \
+//     -s ~/simics/simics-6.0.204 \
+//     -s ~/simics/simics-6.0.205 \
+//     -s ~/simics/simics-6.0.206 \
+//     -s ~/simics/simics-6.0.207 \
 //     -s ~/simics/simics-7.0.0 \
 //     -s ~/simics/simics-7.1.0 \
 //     -s ~/simics/simics-7.2.0 \
@@ -1052,6 +1061,14 @@ fn main() -> Result<()> {
 //     -s ~/simics/simics-7.10.0 \
 //     -s ~/simics/simics-7.11.0 \
 //     -s ~/simics/simics-7.12.0 \
+//     -s ~/simics/simics-7.13.0 \
+//     -s ~/simics/simics-7.14.0 \
+//     -s ~/simics/simics-7.15.0 \
+//     -s ~/simics/simics-7.16.0 \
+//     -s ~/simics/simics-7.17.0 \
+//     -s ~/simics/simics-7.18.0 \
+//     -s ~/simics/simics-7.19.0 \
+//     -s ~/simics/simics-7.20.0 \
 //     -o simics-api-sys/simics_api_items.rs
 // ```
 //

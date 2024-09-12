@@ -20,16 +20,16 @@ use std::{
     ptr::null,
 };
 
-#[cfg(simics_version_6)]
+#[cfg(simics_version = "6")]
 /// Alias for `cpu_variant_t`
 pub type CpuVariant = crate::sys::cpu_variant_t;
 
-#[cfg(simics_version_6)]
+#[cfg(simics_version = "6")]
 #[derive(Debug, Clone)]
 /// Wrapper for `gui_mode_t` which can be converted to a string
 pub struct GuiMode(crate::sys::gui_mode_t);
 
-#[cfg(simics_version_6)]
+#[cfg(simics_version = "6")]
 impl ToString for GuiMode {
     fn to_string(&self) -> String {
         match self.0 {
