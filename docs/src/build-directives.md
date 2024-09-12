@@ -17,7 +17,8 @@ functionality depending on the version compiled against, you can call
 
 ## Changelog
 
-The following is an abbreviated changelog for reference purposes.
+The following is an abbreviated changelog for reference purposes. It is determined by
+running `./scripts/simics-changes.sh` and examining the diffs.
 
 6.0.163->6.0.164:
 - Add:
@@ -157,6 +158,19 @@ The following is an abbreviated changelog for reference purposes.
 - Remove:
   - `SIM_object_iterator`
   - `SIM_shallow_object_iterator`
+
+6.0.198->6.0.199:
+  - Add:
+    - `xtensa_internal_memories_interface_t`
+    - `xtensa_mpu_lookup_interface_t`
+    - `int VT_log_always_count(void);`
+    - `cxl_non_device_decoder_handling_interface_t`
+    - `cxl_mem_downstream_port_managing_interface_t`
+    - `transaction_subscribe_interface_t`
+
+6.0.204->6.0.205:
+  - Add:
+    - `void VT_set_prompt_customizer(prompt_customizer_t NOTNULL cb);`
 
 6.X.X->7.0.0:
 - Remove:
@@ -303,3 +317,20 @@ The following is an abbreviated changelog for reference purposes.
 - Remove:
   - `SIM_object_iterator`
   - `SIM_shallow_object_iterator`
+
+7.13.0->7.14.0:
+  - Add:
+    - `xtensa_internal_memories_interface_t`
+    - `xtensa_mpu_lookup_interface_t`
+    - `int VT_log_always_count(void);`
+    - `cxl_non_device_decoder_handling_interface_t`
+    - `cxl_mem_downstream_port_managing_interface_t`
+    - `transaction_subscribe_interface_t`
+
+7.16.0->7.17.0:
+  - Rename:
+      `VT_simics_to_filename` -> `simics_to_filename`
+
+7.18.0->7.19.0:
+  - Add:
+    - `void VT_set_prompt_customizer(prompt_customizer_t NOTNULL cb);`

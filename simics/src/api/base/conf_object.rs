@@ -5,6 +5,7 @@
 
 //! Bindings for configuration objects
 
+// NOTE: SIM_object_iterator removed in 7.9.0/6.0.194
 #[cfg(any(
     simics_version = "6.0.163",
     simics_version = "6.0.164",
@@ -51,6 +52,8 @@
 ))]
 use crate::sys::{SIM_object_iterator, SIM_shallow_object_iterator};
 
+// NOTE: For any version other than those SIM_object_iterator is defined for,
+// use VT_object_iterator and VT_shallow_object_iterator
 #[cfg(not(any(
     simics_version = "6.0.163",
     simics_version = "6.0.164",
