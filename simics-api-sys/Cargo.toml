@@ -25,15 +25,15 @@ categories = [
 # NOTE: This crate should never have any [dependencies]!
 
 [build-dependencies]
-anyhow = "1.0.86"
-bindgen = "0.69.4"
-scraper = "0.19.0"
+anyhow = "1.0.88"
+bindgen = "0.70.1"
+scraper = "0.20.0"
 walkdir = "2.5.0"
 
 ispm-wrapper = { version = "0.1.0", workspace = true }
 
 [dev-dependencies]
-anyhow = "1.0.86"
+anyhow = "1.0.88"
 raw-cstr = "0.1.4"
 
 [features]

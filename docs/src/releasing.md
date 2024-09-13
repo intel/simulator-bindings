@@ -2,11 +2,20 @@
 
 1. List Simics-Base package versions in simics-api-sys/build.rs by running:
 
-`ispm packages --list-available --json | awk '/\{/,EOF' | jq -r '.availablePackages[] | select(.pkgNumber == 1000) | .version' | tac | grep -v pre | sed -ne '/6.0.163/,$ p'`
+```sh
+ispm packages --list-available --json \
+    | awk '/\{/,EOF' \
+    | jq -r '.availablePackages[] | select(.pkgNumber == 1000) | .version' \
+    | tac \
+    | grep -v pre \
+    | sed -ne '/6.0.163/,$ p'
+```
 
-2. Update command at bottom of simics-api-sys/build.rs with any missing versions from the list
+2. Update command at bottom of simics-api-sys/build.rs with any missing
+   versions from the list
 
-3. Install all supported Simics-Base package versions (update command with latest versions, here 6.0.207 and 7.0.20)
+3. Install all supported Simics-Base package versions (update command with
+   latest versions, here 6.0.207 and 7.0.20)
 
 `kinit; ispm packages -i 1000-6.0.{163..207} 1000-7.{0..20}.0`
 
@@ -83,10 +92,11 @@
     -o simics-api-sys/simics_api_items.rs
 ```
 
-5. Build high-level bindings for any new features that merit inclusion. Not all features have high-level bindings, but most do. These high level
-bindings should utilize the versioned `cfg()` directives.
+5. Build high-level bindings for any new features that merit inclusion. Not all
+   features have high-level bindings, but most do. These high level bindings
+   should utilize the versioned `cfg()` directives.
 
-7. Run check script: `./check.sh` 
+7. Run check script: `./check.sh`
     - This will report issues with formatting (C and Python formatting can be ignored
       for releases, markdown and Rust issues should be fixed)
     - This will perform most checks done in CI including dependencies

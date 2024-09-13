@@ -320,12 +320,12 @@ running `./scripts/simics-changes.sh` and examining the diffs.
 
 7.13.0->7.14.0:
 - Add:
- - `xtensa_internal_memories_interface_t`
- - `xtensa_mpu_lookup_interface_t`
- - `int VT_log_always_count(void);`
- - `cxl_non_device_decoder_handling_interface_t`
- - `cxl_mem_downstream_port_managing_interface_t`
- - `transaction_subscribe_interface_t`
+  - `xtensa_internal_memories_interface_t`
+  - `xtensa_mpu_lookup_interface_t`
+  - `int VT_log_always_count(void);`
+  - `cxl_non_device_decoder_handling_interface_t`
+  - `cxl_mem_downstream_port_managing_interface_t`
+  - `transaction_subscribe_interface_t`
 
 7.16.0->7.17.0:
 - Rename:
