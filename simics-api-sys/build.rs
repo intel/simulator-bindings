@@ -1048,6 +1048,7 @@ fn main() -> Result<()> {
 //     -s ~/simics/simics-6.0.205 \
 //     -s ~/simics/simics-6.0.206 \
 //     -s ~/simics/simics-6.0.207 \
+//     -s ~/simics/simics-6.0.208 \
 //     -s ~/simics/simics-7.0.0 \
 //     -s ~/simics/simics-7.1.0 \
 //     -s ~/simics/simics-7.2.0 \
