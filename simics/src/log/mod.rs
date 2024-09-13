@@ -4,10 +4,11 @@
 //! Logging utilities for the Simics crate for use with the Simics logging API
 
 #[macro_export]
-/// Log an error message via the SIMICS logging API. If an object is provided, the
-/// message will be logged through that object. If not, the message will be logged
-/// through the base `sim` object. Note that errors logged may trigger simulator exit if
-/// the simulator is run with the `-werror` flag.
+/// Log an error message via the SIMICS logging API.
+///
+/// If an object is provided, the message will be logged through that object. If not,
+/// the message will be logged through the base `sim` object. Note that errors logged
+/// may trigger simulator exit if the simulator is run with the `-werror` flag.
 ///
 /// # Examples
 ///
@@ -183,10 +184,12 @@ macro_rules! trace {
 }
 
 #[macro_export]
-/// Log a message via the SIMICS logging API. If an object is provided, the
-/// message will be logged through that object. If not, the message will be logged
-/// through the base `sim` object. [`trace`], [`debug`], [`info`], [`warn`] , and [`error`] messages
-/// use this macro internally. This macro takes the log level as its first parameter.
+/// Log a message via the SIMICS logging API.
+///
+/// If an object is provided, the message will be logged through that object. If not,
+/// the message will be logged through the base `sim` object. [`trace`], [`debug`],
+/// [`info`], [`warn`] , and [`error`] messages use this macro internally. This macro
+/// takes the log level as its first parameter.
 ///
 /// # Examples
 ///
