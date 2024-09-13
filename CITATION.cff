@@ -5,7 +5,7 @@ authors:
     given-names: "Rowan"
     orcid: "https://orcid.org/0000-0001-9932-3798"
 
-title: "simics-rs"
+title: "simulator-bindings"
 version: 0.1.0
 doi: ""
 date-released: 2024-01-10
