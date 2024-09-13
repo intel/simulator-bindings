@@ -24,10 +24,10 @@ Simics® Simulator to add or modify functionality and model devices.
 ## Documentation
 
 The crate documentation can be found at
-[intel.github.io/simics-rs/crates](https://intel.github.io/simics-rs/crates).
+[intel.github.io/simulator-bindings/crates](https://intel.github.io/simulator-bindings/crates).
 
 The current public Intel® Simics® Simulator documentation can be found at
-[intel.github.io/simics-rs/simics](https://intel.github.io/simics-rs/simics).
+[intel.github.io/simulator-bindings/simics](https://intel.github.io/simulator-bindings/simics).
 
 
 Intel and Simics are trademarks of Intel Corporation or its subsidiaries.
