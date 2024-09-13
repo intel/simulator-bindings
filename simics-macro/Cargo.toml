@@ -27,11 +27,11 @@ proc-macro = true
 [dependencies]
 chrono = "0.4.38"
 command-ext = "0.1.2"
-darling = "0.20.9"
+darling = "0.20.10"
 indoc = "2.0.5"
-proc-macro2 = "1.0.85"
-quote = "1.0.36"
-syn = { version = "2.0.66", features = ["full"] }
+proc-macro2 = "1.0.86"
+quote = "1.0.37"
+syn = { version = "2.0.77", features = ["full"] }
 
 ispm-wrapper = { version = "0.1.0", workspace = true }
 simics-api-sys = { version = "0.1.1", workspace = true }

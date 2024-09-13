@@ -13,6 +13,7 @@ use serde_json::from_value;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 /// Implements the Schema for package-specs.json
+///
 /// {
 ///     "$schema": "https://json-schema.org/draft/2020-12/schema",
 ///     "type": "array",

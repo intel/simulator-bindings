@@ -15,7 +15,7 @@ pub mod log;
 #[forbid(unsafe_code)]
 pub mod util;
 
-use std::{any::Any, panic::PanicInfo};
+use std::{any::Any, panic::PanicHookInfo};
 
 // Glob re-export the api and utilities
 pub use api::*;
@@ -50,9 +50,9 @@ pub fn get_panic_message(payload: &Box<dyn Any + Send>) -> Option<&str> {
 }
 
 /// Attempt to produce a `&str` message (with a default)
-/// from a [`std::panic::PanicInfo`].
+/// from a [`std::panic::PanicHookInfo`].
 /// See [module docs][crate] for usage.
-pub fn panic_info_message<'pi>(panic_info: &'pi PanicInfo<'_>) -> &'pi str {
+pub fn panic_info_message<'pi>(panic_info: &'pi PanicHookInfo<'_>) -> &'pi str {
     imp::get_panic_message(panic_info.payload()).unwrap_or({
         // Copy what rustc does in the default panic handler
         "Box<dyn Any>"
@@ -60,9 +60,9 @@ pub fn panic_info_message<'pi>(panic_info: &'pi PanicInfo<'_>) -> &'pi str {
 }
 
 /// Attempt to produce a `&str` message (with a default)
-/// from a [`std::panic::PanicInfo`].
+/// from a [`std::panic::PanicHookInfo`].
 /// See [module docs][crate] for usage.
-pub fn get_panic_info_message<'pi>(panic_info: &'pi PanicInfo<'_>) -> Option<&'pi str> {
+pub fn get_panic_info_message<'pi>(panic_info: &'pi PanicHookInfo<'_>) -> Option<&'pi str> {
     imp::get_panic_message(panic_info.payload())
 }
 
@@ -84,12 +84,13 @@ mod imp {
     }
 }
 
-/// Panic handler for Simics modules. This will log the panic message and then
-/// call `SIM_quit` to exit the simulator (backtraces are not available in the
-/// simulator, so we don't bother trying to print one). It is usually automatically
-/// installed by any #[simics_init] attribute macro, but can be manually installed
-/// using `std::panic::set_hook`.
-pub fn panic_handler(info: &PanicInfo<'_>) -> ! {
+/// Panic handler for Simics modules.
+///
+/// This will log the panic message and then call `SIM_quit` to exit the simulator
+/// (backtraces are not available in the simulator, so we don't bother trying to print
+/// one). It is usually automatically installed by any #[simics_init] attribute macro,
+/// but can be manually installed using `std::panic::set_hook`.
+pub fn panic_handler(info: &PanicHookInfo<'_>) -> ! {
     let message = panic_info_message(info);
 
     if let Some(location) = info.location() {

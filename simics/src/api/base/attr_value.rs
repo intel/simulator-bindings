@@ -3379,10 +3379,12 @@ pub fn attr_boolean(attr: &AttrValue) -> Result<bool> {
     })
 }
 
-/// Get an [`AttrValue`] as a String. Unlike the C API function, which transfers
-/// ownership of the string to the caller and replaces the value in the `AttrValue`
-/// with a nil value, this function copies the string and takes ownership of the new
-/// string. The old string's ownership is not changed, and it is not freed.
+/// Get an [`AttrValue`] as a String.
+///
+/// Unlike the C API function, which transfers ownership of the string to the caller and
+/// replaces the value in the `AttrValue` with a nil value, this function copies the
+/// string and takes ownership of the new string. The old string's ownership is not
+/// changed, and it is not freed.
 ///
 /// # Arguments
 ///
@@ -3473,8 +3475,10 @@ pub fn attr_object(attr: &AttrValue) -> Result<*mut ConfObject> {
 }
 
 /// Get an [`AttrValue`] as a [`ConfObject`] pointer if it is one, or a null pointer
-/// otherwise. This function should typically not be used and is provided for
-/// compatibility only. Use [`attr_object`] instead.
+/// otherwise.
+///
+/// This function should typically not be used and is provided for compatibility only.
+/// Use [`attr_object`] instead.
 ///
 /// # Arguments
 ///
@@ -3533,11 +3537,12 @@ pub fn attr_data_size(attr: &AttrValue) -> Result<u32> {
         })
 }
 
-/// Get the contained data from an [`AttrValue`] if it is a data value,
-/// or return an error if it is not. Unlike the C API function, which does
-/// not transfer ownership of the data to the caller, this function copies
-/// the data and takes ownership of the new data. The old data's ownership
-/// is not changed, and it is not freed.
+/// Get the contained data from an [`AttrValue`] if it is a data value, or return an
+/// error if it is not.
+///
+/// Unlike the C API function, which does not transfer ownership of the data to the
+/// caller, this function copies the data and takes ownership of the new data. The old
+/// data's ownership is not changed, and it is not freed.
 ///
 /// # Arguments
 ///
@@ -3587,9 +3592,11 @@ pub fn attr_list_size(attr: &AttrValue) -> Result<u32> {
 }
 
 /// Retrieve a list item from an attr list without converting the item to a specific
-/// type. Unlike a simple access in the C API, the item is cloned and the caller
-/// takes ownership of the new item. The old item's ownership is not changed, and it
-/// is not freed.
+/// type.
+///
+/// Unlike a simple access in the C API, the item is cloned and the caller takes
+/// ownership of the new item. The old item's ownership is not changed, and it is not
+/// freed.
 ///
 /// # Arguments
 ///
@@ -3640,10 +3647,11 @@ pub fn attr_dict_size(attr: &AttrValue) -> Result<u32> {
         })
 }
 
-/// Get a key from an [`AttrValue`] dict if it is one, or an error otherwise. Unlike
-/// the C API function, which does not transfer ownership of the key to the caller,
-/// this function copies the key and takes ownership of the new key. The old key's
-/// ownership is not changed, and it is not freed.
+/// Get a key from an [`AttrValue`] dict if it is one, or an error otherwise.
+///
+/// Unlike the C API function, which does not transfer ownership of the key to the
+/// caller, this function copies the key and takes ownership of the new key. The old
+/// key's ownership is not changed, and it is not freed.
 ///
 /// # Arguments
 ///
@@ -3685,10 +3693,11 @@ pub fn attr_dict_key(attr: &AttrValue, index: u32) -> Result<AttrValue> {
     }
 }
 
-/// Get a value for an [`AttrValue`] dictionary. Unlike the C API function, which does
-/// not transfer ownership of the value to the caller, this function copies the value
-/// and takes ownership of the new value. The old value's ownership is not changed, and
-/// it is not freed.
+/// Get a value for an [`AttrValue`] dictionary.
+///
+/// Unlike the C API function, which does not transfer ownership of the value to the
+/// caller, this function copies the value and takes ownership of the new value. The old
+/// value's ownership is not changed, and it is not freed.
 ///
 /// # Arguments
 ///

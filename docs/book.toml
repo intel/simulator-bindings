@@ -6,7 +6,7 @@ authors = ["novafacing"]
 language = "en"
 multilingual = false
 src = "src"
-title = "simics-rs"
+title = "simulator-bindings"
 
 [output.html]
 

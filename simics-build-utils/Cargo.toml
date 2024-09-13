@@ -22,7 +22,7 @@ categories = [
 ]
 
 [dependencies]
-anyhow = "1.0.86"
+anyhow = "1.0.88"
 versions = { version = "6.2.0", features = ["serde"] }
 
 ispm-wrapper = { version = "0.1.0", workspace = true }

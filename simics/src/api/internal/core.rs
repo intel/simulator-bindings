@@ -3,16 +3,16 @@
 
 //! Not officially exported CORE APIs
 
-#[cfg(simics_version_6)]
+#[cfg(simics_version = "6")]
 use crate::simics_exception;
 
-#[cfg(simics_version_6)]
+#[cfg(simics_version = "6")]
 extern "C" {
     /// Discard recorded future events and forget them
     pub fn CORE_discard_future();
 }
 
-#[cfg(simics_version_6)]
+#[cfg(simics_version = "6")]
 #[simics_exception]
 /// Discard future events that are scheduled
 ///

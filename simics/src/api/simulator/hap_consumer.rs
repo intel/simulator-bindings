@@ -4,7 +4,7 @@
 //! HAP APIs and HAP definitions
 
 #![allow(clippy::unused_unit)]
-#![allow(clippy::not_unsafe_ptr_arg_deref)]
+#![allow(clippy::not_unsafe_ptr_arg_deref, clippy::too_long_first_doc_paragraph)]
 
 use crate::{
     simics_exception,

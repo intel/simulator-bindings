@@ -34,23 +34,21 @@ where
 
 /// Emit expected CFG directives for check-cfg feature tests
 pub fn emit_expected_cfg_directives() {
-    println!("cargo:rustc-check-cfg=cfg(simics_version_6)");
-    println!("cargo:rustc-check-cfg=cfg(simics_version_7)");
-
-    // We emit all the way up to 9.99.999 as expected CFG directives
-    for i in 600_000..799_999 {
-        println!(
-            "cargo:rustc-check-cfg=cfg(simics_version_{}_{}_{})",
-            i / 100_000,
-            i / 1_000 % 100,
-            i % 1_000
-        );
-    }
+    let values = (600_000..799_999)
+        .map(|v| format!(r#""{}.{}.{}""#, v / 100_000, v / 1_000 % 100, v % 1_000))
+        .collect::<Vec<_>>()
+        .join(", ");
+    println!(
+        "cargo:rustc-check-cfg=cfg(simics_version, values({}))",
+        values
+    );
+    println!(r#"cargo:rustc-check-cfg=cfg(simics_version, values("6", "7"))"#,);
 }
 
-/// Emit CFG directives for the version of the Simics API being compiled against. For example,
-/// simics_version_6_0_185 and simics_version_6. Both a full triple version and a major version
-/// directive is emitted.
+/// Emit CFG directives for the version of the Simics API being compiled against.
+///
+/// For example, simics_version = "6.0.185" and simics_version = "6". Both a full triple version
+/// and a major version directive is emitted.
 ///
 /// This function can be used in the `build.rs` script of a crate that depends on the `simics`
 /// crate to conditionally enable experimental features in its own code.
@@ -65,13 +63,10 @@ pub fn emit_cfg_directives() -> Result<()> {
         .ok_or_else(|| anyhow!("Invalid version {}", simics_api_sys::SIMICS_VERSION))?;
 
     // Exports a configuration directive indicating which Simics version is *compiled* against.
-    println!(
-        "cargo:rustc-cfg=simics_version_{}",
-        simics_api_version.to_string().replace('.', "_")
-    );
+    println!(r#"cargo:rustc-cfg=simics_version="{}""#, simics_api_version);
 
     println!(
-        "cargo:rustc-cfg=simics_version_{}",
+        r#"cargo:rustc-cfg=simics_version="{}""#,
         simics_api_version
             .to_string()
             .split('.')

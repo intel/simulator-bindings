@@ -10,6 +10,16 @@ if ! command -v fd &>/dev/null; then
     exit 1
 fi
 
+if ! command -v cargo-outdated &>/dev/null; then
+    echo "cargo outdated must be installed! Install with 'cargo install cargo-outdated'"
+    exit 1
+fi
+
+if ! command -v cargo-audit &>/dev/null; then
+    echo "cargo audit must be installed! Install with 'cargo install cargo-audit'"
+    exit 1
+fi
+
 if ! command -v cargo &>/dev/null; then
     echo "cargo must be installed! Install from https://rustup.rs"
     exit 1
@@ -53,3 +63,16 @@ echo "Running gitleaks..."
 echo "================="
 
 gitleaks detect
+
+echo "================="
+echo "Checking for out of date dependencies..."
+echo "================="
+
+cargo outdated -R --exit-code 1
+
+
+echo "================="
+echo "Checking for vulnerable dependencies..."
+echo "================="
+
+cargo audit
