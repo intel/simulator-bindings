@@ -12,7 +12,7 @@
 
 4. Run the `gen-api-items.rs` script using the command in simics-api-sys/build.rs like:
 
-```
+```sh
 ./scripts/gen-simics-api-items.rs \
     -s ~/simics/simics-6.0.163 \
     -s ~/simics/simics-6.0.164 \
