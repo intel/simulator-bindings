@@ -3,7 +3,7 @@
 
 [package]
 name = "cargo-simics-build"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Rowan Hart <rowan.hart@intel.com>"]
 edition = "2021"
 description = "Build utility for Intel® Simics® Simulator modules"

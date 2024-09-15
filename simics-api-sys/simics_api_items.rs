@@ -1,4 +1,4 @@
-const SIMICS_API_ITEMS: &[&str; 2460usize] = &[
+const SIMICS_API_ITEMS: &[&str; 2461usize] = &[
     "A20_INTERFACE",
     "ABS_POINTER_ACTIVATE_INTERFACE",
     "ABS_POINTER_INTERFACE",
@@ -974,6 +974,7 @@ const SIMICS_API_ITEMS: &[&str; 2460usize] = &[
     "VT_domain_event_at",
     "VT_domain_event_soon",
     "VT_dump_snapshot",
+    "VT_effective_log_level",
     "VT_execute",
     "VT_first_clock",
     "VT_free_completion",
