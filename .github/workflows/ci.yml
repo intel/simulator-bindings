@@ -24,7 +24,12 @@ jobs:
     container: github/super-linter
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Harden Runner
+        uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           fetch-depth: 0
           lfs: false
@@ -60,6 +65,11 @@ jobs:
     container: fedora:38
     runs-on: ubuntu-latest
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
+        with:
+          egress-policy: audit
+
       - name: Add ISPM to PATH
         run: |
           echo "${HOME}/simics/ispm/" >> "${GITHUB_PATH}"
@@ -75,18 +85,18 @@ jobs:
             llvm-static make mesa-libgbm mtools ninja-build openssl \
             openssl-devel openssl-libs python3 python3-pip yamllint
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           lfs: true
 
-      - uses: dtolnay/rust-toolchain@nightly
+      - uses: dtolnay/rust-toolchain@83bdede770b06329615974cf8c786f845d824dfb # nightly
         with:
           toolchain: nightly
           components: rustfmt,clippy,miri
 
       - name: Cache SIMICS Dependencies
         id: cache-simics-packages
-        uses: actions/cache@v4
+        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
         with:
           path: ~/simics
           key: simics-linux-${{ env.PUBLIC_SIMICS_PACKAGE_VERSION_1000 }}-${{ env.PUBLIC_SIMICS_ISPM_VERSION }}
@@ -129,7 +139,7 @@ jobs:
           echo "✅ [CT39 (1/2)] Passed clippy static analysis checks"
 
       - name: Upload Clippy Check Results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
           name: clippy-json
           path: |
@@ -150,6 +160,11 @@ jobs:
     name: Build and Test (Windows)
     runs-on: windows-latest
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
+        with:
+          egress-policy: audit
+
       - name: Add ISPM and MinGW to PATH
         run: |
           set PATH $env:PATH
@@ -160,7 +175,7 @@ jobs:
 
       - name: Cache MinGW
         id: cache-mingw
-        uses: actions/cache@v4
+        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
         with:
           path: C:\MinGW\
           key: mingw-${{ env.MINGW_VERSION }}
@@ -186,7 +201,7 @@ jobs:
 
       - name: Cache SIMICS
         id: cache-simics-packages-windows
-        uses: actions/cache@v4
+        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
         with:
           path: |
             C:\ISPM\
@@ -221,7 +236,7 @@ jobs:
           ispm.exe packages --install-bundle C:\simics-6-packages.ispm --non-interactive --trust-insecure-packages
           echo "Installed ISPM packages"
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           lfs: true
 
@@ -234,17 +249,22 @@ jobs:
     container: fedora:38
     runs-on: ubuntu-latest
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
+        with:
+          egress-policy: audit
+
       - name: Install Dependencies
         run: |
           dnf -y update && \
           dnf -y install \
             g++ gcc git git-lfs glibc-devel make openssl openssl-devel openssl-libs
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           lfs: false
 
-      - uses: dtolnay/rust-toolchain@nightly
+      - uses: dtolnay/rust-toolchain@83bdede770b06329615974cf8c786f845d824dfb # nightly
         with:
           toolchain: nightly
           components: rustfmt,clippy,miri
