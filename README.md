@@ -1,3 +1,5 @@
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/9453/badge)](https://www.bestpractices.dev/projects/9453)
+
 # Simulator Bindings
 
 This repository contains Rust bindings and utilities for Intel® Simics® Simulator and the
