@@ -37,7 +37,7 @@ simics-macro = { version = "0.1.0", workspace = true }
 
 [build-dependencies]
 anyhow = "1.0.88"
-darling = "0.20.10"
+darling = "=0.20.10"
 prettyplease = "0.2.22"
 proc-macro2 = "1.0.86"
 quote = "1.0.37"

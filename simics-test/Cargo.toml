@@ -26,7 +26,7 @@ anyhow = "1.0.88"
 cargo-subcommand = "0.12.0"
 cargo_metadata = "0.18.1"
 command-ext = "0.1.2"
-getters2 = "0.1.4"
+getters3 = "0.1.0"
 indoc = "2.0.5"
 typed-builder = "0.20.0"
 versions = { version = "6.2.0", features = ["serde"] }
