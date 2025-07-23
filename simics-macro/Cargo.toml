@@ -27,7 +27,7 @@ proc-macro = true
 [dependencies]
 chrono = "0.4.38"
 command-ext = "0.1.2"
-darling = "0.20.10"
+darling = "=0.20.10"
 indoc = "2.0.5"
 proc-macro2 = "1.0.86"
 quote = "1.0.37"
