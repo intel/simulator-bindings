@@ -25,7 +25,7 @@ categories = [
 crate-type = ["cdylib"]
 
 [dependencies]
-ffi = "0.1.1"
+ffi2 = "0.1.0"
 
 simics = { version = "0.1.1", workspace = true }
 

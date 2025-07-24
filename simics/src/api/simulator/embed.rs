@@ -12,7 +12,7 @@ use crate::{
     },
     Result,
 };
-use paste::paste;
+use pastey::paste;
 use raw_cstr::raw_cstr;
 use std::{
     fmt::{self, Display, Formatter},

@@ -12,6 +12,8 @@ use simics::{
     class, interface, simics_init, FromConfObject,
 };
 
+extern crate ffi2 as ffi;
+
 #[class(name = "HelloWorld")]
 #[derive(FromConfObject, Default)]
 struct HelloWorld {
