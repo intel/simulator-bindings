@@ -92,10 +92,7 @@ jobs:
         with:
           lfs: true
 
-      - uses: dtolnay/rust-toolchain@83bdede770b06329615974cf8c786f845d824dfb # nightly
-        with:
-          toolchain: nightly
-          components: rustfmt,clippy,miri
+      - uses: dtolnay/rust-toolchain@stable
 
       - name: Cache SIMICS Dependencies
         id: cache-simics-packages
@@ -267,14 +264,13 @@ jobs:
         with:
           lfs: false
 
-      - uses: dtolnay/rust-toolchain@83bdede770b06329615974cf8c786f845d824dfb # nightly
-        with:
-          toolchain: nightly
-          components: rustfmt,clippy,miri
+      - uses: dtolnay/rust-toolchain@stable
 
       - name: Install Cargo Plugins
         run: |
-          cargo install cargo-audit cargo-outdated cargo-unmaintained
+          # force stable toolchain otherwise rust-toolchain will not be used
+          # and cargo-unmaintained build will fail
+          cargo +stable install cargo-audit cargo-outdated cargo-unmaintained
 
       - name: (CT247/CT200) (N/C) - Scan 3rd-Party Components for Vulnerabilities
         run: |
