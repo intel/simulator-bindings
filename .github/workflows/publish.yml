@@ -19,7 +19,8 @@ jobs:
           egress-policy: audit
 
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-      - uses: dtolnay/rust-toolchain@83bdede770b06329615974cf8c786f845d824dfb # nightly
+
+      - uses: dtolnay/rust-toolchain@stable
 
       - name: cargo-release Cache
         id: cargo_release_cache
