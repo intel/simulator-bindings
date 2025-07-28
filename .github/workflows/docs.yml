@@ -127,41 +127,45 @@ jobs:
 
       - name: Generate Crate Documentation
         run: |
+          # Use /mnt for cargo target directory to avoid filling root filesystem
+          export CARGO_TARGET_DIR="/mnt/cargo-target"
+          sudo mkdir -p "$CARGO_TARGET_DIR"
+          sudo chown -R "$USER:$USER" "$CARGO_TARGET_DIR"
           SIMICS_BASE="${HOME}/simics/simics-${{ env.PUBLIC_SIMICS_PACKAGE_VERSION_1000 }}" RUSTDOCFLAGS="--enable-index-page -Zunstable-options" cargo doc --document-private-items --workspace --no-deps
-          cp -a target/doc/ docs/book/html/crates/
+          cp -a "$CARGO_TARGET_DIR/doc/" docs/book/html/crates/
 
       - name: Debug - Check disk space after generating crate documentation
         run: |
           df -h
 
-      - name: Set Documentation Permissions
-        run: |
-          sudo chown -R "$USER:$USER" docs
-          sudo chmod -R 755 docs
-          sudo chmod -c -R +rX docs/ | while read -r line; do
-            echo "::warning title=Invalid file permissions automatically fixed::$line"
-          done
+      # - name: Set Documentation Permissions
+      #   run: |
+      #     sudo chown -R "$USER:$USER" docs
+      #     sudo chmod -R 755 docs
+      #     sudo chmod -c -R +rX docs/ | while read -r line; do
+      #       echo "::warning title=Invalid file permissions automatically fixed::$line"
+      #     done
 
-      - name: Debug - Check disk space after setting documentation permissions
-        run: |
-          df -h
+      # - name: Debug - Check disk space after setting documentation permissions
+      #   run: |
+      #     df -h
 
-      - name: Setup Pages
-        uses: actions/configure-pages@b8130d9ab958b325bbde9786d62f2c97a9885a0e # v3.0.7
+      # - name: Setup Pages
+      #   uses: actions/configure-pages@b8130d9ab958b325bbde9786d62f2c97a9885a0e # v3.0.7
 
-      - name: Debug - Check disk space after setting up pages
-        run: |
-          df -h
+      # - name: Debug - Check disk space after setting up pages
+      #   run: |
+      #     df -h
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
-        with:
-          path: "./docs/book/html/"
+      # - name: Upload artifact
+      #   uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
+      #   with:
+      #     path: "./docs/book/html/"
 
-      - name: Debug - Check disk space after uploading artifact
-        run: |
-          df -h
+      # - name: Debug - Check disk space after uploading artifact
+      #   run: |
+      #     df -h
 
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
+      # - name: Deploy to GitHub Pages
+      #   id: deployment
+      #   uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
