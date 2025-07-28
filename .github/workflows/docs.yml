@@ -93,8 +93,14 @@ jobs:
 
       - name: Generate Crate Documentation
         run: |
+          # Use /mnt for cargo target directory to avoid filling root filesystem
+          export CARGO_TARGET_DIR="/mnt/cargo-target"
+          sudo mkdir -p "$CARGO_TARGET_DIR"
+          sudo chown -R "$USER:$USER" "$CARGO_TARGET_DIR"
           SIMICS_BASE="${HOME}/simics/simics-${{ env.PUBLIC_SIMICS_PACKAGE_VERSION_1000 }}" RUSTDOCFLAGS="--enable-index-page -Zunstable-options" cargo doc --document-private-items --workspace --no-deps
-          cp -a target/doc/ docs/book/html/crates/
+          # Ensure the destination directory exists before copying
+          mkdir -p docs/book/html/crates/
+          cp -a "$CARGO_TARGET_DIR/doc/" docs/book/html/crates/
 
       - name: Set Documentation Permissions
         run: |
