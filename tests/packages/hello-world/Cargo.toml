@@ -8,7 +8,6 @@ authors = ["Rowan Hart <rowan.hart@intel.com>"]
 edition = "2021"
 description = "A simple module demonstrating the Intel Simics Simulator API"
 documentation = "https://intel.github.io/simulator-bindings/crates/hello_world/"
-readme = "../README.md"
 homepage = "https://github.com/intel/simulator-bindings"
 repository = "https://github.com/intel/simulator-bindings"
 license = "Apache-2.0"
