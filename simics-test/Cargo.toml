@@ -3,7 +3,7 @@
 
 [package]
 name = "simics-test"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Rowan Hart <rowan.hart@intel.com>"]
 edition = "2021"
 description = "Intel Simics Simulator module testing tools"
