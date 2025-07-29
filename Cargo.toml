@@ -57,7 +57,7 @@ simics-macro = { version = "0.1.1", path = "simics-macro" }
 simics = { version = "0.1.2", path = "simics" }
 simics-sign = { version = "0.1.1", path = "simics-sign" }
 simics-package = { version = "0.1.1", path = "simics-package" }
-simics-test = { version = "0.1.1", path = "simics-test" }
+simics-test = { version = "0.1.2", path = "simics-test" }
 simics-build-utils = { version = "0.1.1", path = "simics-build-utils" }
 
 [profile.dev]
