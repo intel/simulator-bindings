@@ -450,13 +450,31 @@ pub mod common {
 
             let bindings = Builder::default()
                 .clang_arg(
-                    subdir(base_dir_path.as_ref().join(HOST_DIRNAME).join("include")).and_then(
-                        |p| {
+                    subdir(base_dir_path.as_ref().join(HOST_DIRNAME).join("include"))
+                        .and_then(|p| {
                             p.to_str()
                                 .map(|s| format!("-I{}", s))
                                 .ok_or_else(|| anyhow!("Could not convert path to string"))
-                        },
-                    )?,
+                        })
+                        .or_else(|_| {
+                            // Fallback for Simics 7.28.0+ where Python headers are in separate package (1033)
+                            println!("cargo:warning=Traditional Python include path not found, trying Simics Python package fallback");
+                            let parent_dir = base_dir_path.as_ref().parent().unwrap();
+                            let python_include_path = parent_dir
+                                .join("simics-python-7.10.0")
+                                .join(HOST_DIRNAME)
+                                .join("include");
+                            if python_include_path.exists() {
+                                subdir(&python_include_path)
+                                    .and_then(|p| {
+                                        p.to_str()
+                                            .map(|s| format!("-I{}", s))
+                                            .ok_or_else(|| anyhow!("Could not convert path to string"))
+                                    })
+                            } else {
+                                bail!("Python include directory not found at {}", python_include_path.display())
+                            }
+                        })?,
                 )
                 .clang_arg(format!("-I{}", &wrapper_include_path))
                 .clang_arg("-fretain-comments-from-system-headers")
@@ -774,37 +792,67 @@ pub mod common {
 
             let libvtutils = bin_dir.join("libvtutils.so").canonicalize()?;
 
-            let sys_lib_dir = base_dir_path
-                .join(HOST_DIRNAME)
-                .join("sys")
-                .join("lib")
-                .canonicalize()?;
+            // Try both traditional and fallback sys/lib directories
+            let sys_lib_dirs = vec![
+                base_dir_path.join(HOST_DIRNAME).join("sys").join("lib"),
+                base_dir_path
+                    .parent()
+                    .unwrap()
+                    .join("simics-python-7.10.0")
+                    .join(HOST_DIRNAME)
+                    .join("sys")
+                    .join("lib"),
+            ];
 
-            let libpython = sys_lib_dir.join(
-                read_dir(&sys_lib_dir)?
-                    .filter_map(|p| p.ok())
-                    .filter(|p| p.path().is_file())
-                    .filter(|p| {
-                        let path = p.path();
+            let mut libpython_found = None;
+            let mut used_sys_lib_dir = None;
 
-                        let Some(file_name) = path.file_name() else {
-                            return false;
-                        };
+            for sys_lib_path in &sys_lib_dirs {
+                println!(
+                    "cargo:warning=Trying libpython path: {}",
+                    sys_lib_path.display()
+                );
+                if let Ok(sys_lib_dir) = sys_lib_path.canonicalize() {
+                    if let Some(libpython_path) = read_dir(&sys_lib_dir).ok().and_then(|entries| {
+                        entries
+                            .filter_map(|p| p.ok())
+                            .filter(|p| p.path().is_file())
+                            .filter(|p| {
+                                let path = p.path();
+                                let Some(file_name) = path.file_name() else {
+                                    return false;
+                                };
+                                let Some(file_name) = file_name.to_str() else {
+                                    return false;
+                                };
+                                file_name.starts_with("libpython")
+                                    && file_name.contains(".so")
+                                    && file_name != "libpython3.so"
+                            })
+                            .map(|p| p.path())
+                            .next()
+                    }) {
+                        println!(
+                            "cargo:warning=Found libpython in: {}",
+                            sys_lib_dir.display()
+                        );
+                        libpython_found = Some(libpython_path);
+                        used_sys_lib_dir = Some(sys_lib_dir);
+                        break;
+                    }
+                }
+            }
 
-                        let Some(file_name) = file_name.to_str() else {
-                            return false;
-                        };
+            let (sys_lib_dir, libpython_path) = match (used_sys_lib_dir, libpython_found) {
+                (Some(dir), Some(path)) => (dir, path),
+                _ => {
+                    return Err(anyhow!(
+                        "No libpythonX.XX.so.X.X found in any sys/lib directory"
+                    ))
+                }
+            };
 
-                        file_name.starts_with("libpython")
-                            && file_name.contains(".so")
-                            && file_name != "libpython3.so"
-                    })
-                    .map(|p| p.path())
-                    .next()
-                    .ok_or_else(|| {
-                        anyhow!("No libpythonX.XX.so.X.X found in {}", sys_lib_dir.display())
-                    })?,
-            );
+            let libpython = sys_lib_dir.join(libpython_path);
 
             println!(
                 "cargo:rustc-link-lib=dylib:+verbatim={}",
