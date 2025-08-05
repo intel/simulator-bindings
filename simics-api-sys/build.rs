@@ -795,18 +795,26 @@ pub mod common {
             // Try both traditional and fallback sys/lib directories
             let sys_lib_dirs = vec![
                 base_dir_path.join(HOST_DIRNAME).join("sys").join("lib"),
-                base_dir_path.parent().unwrap().join("simics-python-7.10.0").join(HOST_DIRNAME).join("sys").join("lib")
+                base_dir_path
+                    .parent()
+                    .unwrap()
+                    .join("simics-python-7.10.0")
+                    .join(HOST_DIRNAME)
+                    .join("sys")
+                    .join("lib"),
             ];
 
             let mut libpython_found = None;
             let mut used_sys_lib_dir = None;
 
             for sys_lib_path in &sys_lib_dirs {
-                println!("cargo:warning=Trying libpython path: {}", sys_lib_path.display());
+                println!(
+                    "cargo:warning=Trying libpython path: {}",
+                    sys_lib_path.display()
+                );
                 if let Ok(sys_lib_dir) = sys_lib_path.canonicalize() {
-                    if let Some(libpython_path) = read_dir(&sys_lib_dir)
-                        .ok()
-                        .and_then(|entries| entries
+                    if let Some(libpython_path) = read_dir(&sys_lib_dir).ok().and_then(|entries| {
+                        entries
                             .filter_map(|p| p.ok())
                             .filter(|p| p.path().is_file())
                             .filter(|p| {
@@ -822,9 +830,12 @@ pub mod common {
                                     && file_name != "libpython3.so"
                             })
                             .map(|p| p.path())
-                            .next())
-                    {
-                        println!("cargo:warning=Found libpython in: {}", sys_lib_dir.display());
+                            .next()
+                    }) {
+                        println!(
+                            "cargo:warning=Found libpython in: {}",
+                            sys_lib_dir.display()
+                        );
                         libpython_found = Some(libpython_path);
                         used_sys_lib_dir = Some(sys_lib_dir);
                         break;
@@ -834,7 +845,11 @@ pub mod common {
 
             let (sys_lib_dir, libpython_path) = match (used_sys_lib_dir, libpython_found) {
                 (Some(dir), Some(path)) => (dir, path),
-                _ => return Err(anyhow!("No libpythonX.XX.so.X.X found in any sys/lib directory")),
+                _ => {
+                    return Err(anyhow!(
+                        "No libpythonX.XX.so.X.X found in any sys/lib directory"
+                    ))
+                }
             };
 
             let libpython = sys_lib_dir.join(libpython_path);
