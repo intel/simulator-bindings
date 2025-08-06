@@ -463,20 +463,33 @@ impl Haps {
             .items
             .iter()
             .filter_map(|i| match i {
-                Item::Type(ty) if ty.ident.to_string().ends_with("_hap_callback") => Some(
-                    hap_name_items
-                        .get(
-                            &(ty.ident
-                                .to_string()
-                                .trim_end_matches("_hap_callback")
-                                .to_ascii_uppercase()
-                                + "_HAP_NAME"),
-                        )
-                        .map(|hap_name_item| ((*hap_name_item).clone(), ty.clone()))
-                        .ok_or_else(|| {
-                            darling::Error::custom(format!("Failed to find HAP name for {:?}", ty))
-                        }),
-                ),
+                Item::Type(ty) if ty.ident.to_string().ends_with("_hap_callback") => {
+                    let type_name = ty.ident.to_string();
+                    // Skip generic callback type definitions that are not actual HAPs
+                    // These are used as type aliases in Simics 7.38+ but don't correspond to actual HAPs
+                    if type_name.starts_with("callback_type")
+                        || type_name.starts_with("description")
+                        || type_name.starts_with("index")
+                    {
+                        return None;
+                    }
+                    Some(
+                        hap_name_items
+                            .get(
+                                &(type_name
+                                    .trim_end_matches("_hap_callback")
+                                    .to_ascii_uppercase()
+                                    + "_HAP_NAME"),
+                            )
+                            .map(|hap_name_item| ((*hap_name_item).clone(), ty.clone()))
+                            .ok_or_else(|| {
+                                darling::Error::custom(format!(
+                                    "Failed to find HAP name for {:?}",
+                                    ty
+                                ))
+                            }),
+                    )
+                }
                 _ => None,
             })
             .collect::<darling::Result<HashMap<_, _>>>()?;
