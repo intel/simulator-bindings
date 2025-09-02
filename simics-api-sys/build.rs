@@ -255,19 +255,18 @@ pub mod common {
                     )
                 })?)?);
 
-            let haps_selector = Selector::parse(r#"article"#).unwrap();
-            let haps_id_selector = Selector::parse(r#"h2"#).unwrap();
-            let section_selector = Selector::parse(r#"section"#).unwrap();
+            // only retrieve direct h2 children (skipping those under <section> element below)
+            let haps_id_selector = Selector::parse(r#"article > h2"#).unwrap();
+            let section_selector = Selector::parse(r#"article > section"#).unwrap();
             let hap_code_selector = Selector::parse(r#"pre"#).unwrap();
             let hap_description_selector = Selector::parse(r#"h3"#).unwrap();
             let hap_index_selector = Selector::parse(r#"code"#).unwrap();
 
-            let haps_article = hap_document.select(&haps_selector).next().unwrap();
-            let haps_names = haps_article
+            let haps_names = hap_document
                 .select(&haps_id_selector)
                 .filter_map(|h| h.value().id())
                 .collect::<Vec<_>>();
-            let haps_sections = haps_article.select(&section_selector).collect::<Vec<_>>();
+            let haps_sections = hap_document.select(&section_selector).collect::<Vec<_>>();
             let haps_code_indices_descriptions = haps_sections
                 .iter()
                 .map(|s| {
