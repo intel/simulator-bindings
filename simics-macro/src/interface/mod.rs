@@ -5,14 +5,15 @@ use ispm_wrapper::ispm::{self, GlobalOptions};
 use proc_macro::TokenStream;
 use proc_macro2::{Literal, TokenStream as TokenStream2};
 use quote::{format_ident, quote, ToTokens};
+use simics_python_utils::discover_python_environment_from_base;
 use simics_sign::Sign;
 use std::{
     collections::hash_map::DefaultHasher,
     env::var,
-    fs::{create_dir_all, read_dir, write},
+    fs::{create_dir_all, write},
     hash::{Hash, Hasher},
     io::Write,
-    path::{Path, PathBuf},
+    path::PathBuf,
     process::{Command, Stdio},
 };
 use syn::{
@@ -20,17 +21,8 @@ use syn::{
     Meta, Pat, PathArguments, ReturnType, Type,
 };
 
-#[cfg(not(windows))]
-/// The name of the binary/library/object subdirectory on linux systems
-pub const HOST_DIRNAME: &str = "linux64";
-#[cfg(windows)]
-/// The name of the binary/library/object subdirectory on windows systems
-pub const HOST_DIRNAME: &str = "win64";
-/// Name for the environment variable set by the SIMICS build system to the flag to
-/// include e.g.  -I SIMICS_BASE/linux64/include/python3.9/
-pub const PYTHON3_INCLUDE_ENV: &str = "PYTHON3_INCLUDE";
-/// Name for the environment variable set by the SIMICS build system to the libpython3.so library
-pub const PYTHON3_LDFLAGS_ENV: &str = "PYTHON3_LDFLAGS";
+// Constants now provided by simics-python-utils
+use simics_python_utils::HOST_DIRNAME;
 
 #[derive(Debug, Clone, FromMeta)]
 pub struct InterfaceAttr {
@@ -38,25 +30,7 @@ pub struct InterfaceAttr {
     name: Option<String>,
 }
 
-/// Get the only subdirectory of a directory, if only one exists. If zero or more than one subdirectories
-/// exist, returns an error
-pub fn subdir<P>(dir: P) -> Option<PathBuf>
-where
-    P: AsRef<Path>,
-{
-    let subdirs = read_dir(dir)
-        .ok()?
-        .filter_map(|p| p.ok())
-        .map(|p| p.path())
-        .filter(|p| p.is_dir())
-        .collect::<Vec<_>>();
-
-    if subdirs.len() != 1 {
-        return None;
-    }
-
-    subdirs.first().cloned()
-}
+// subdir function now provided by simics-python-utils
 
 pub trait SnakeToCamel {
     fn snake_to_camel(&self) -> String;
@@ -634,39 +608,20 @@ impl CInterface {
                 .clone()
         };
 
-        #[cfg(unix)]
-        let mini_python = {
-            let traditional_path = simics_base.join("bin").join("mini-python");
-            if traditional_path.exists() {
-                traditional_path
-            } else {
-                // Fallback for Simics 7.28.0+ where mini-python is in separate Python package (1033)
-                let parent_dir = simics_base.parent().unwrap();
-                parent_dir
-                    .join("simics-python-7.10.0")
-                    .join(HOST_DIRNAME)
-                    .join("bin")
-                    .join("mini-python")
-            }
-        };
+        // Discover Python environment using unified detection
+        let python_env = discover_python_environment_from_base(&simics_base)
+            .map_err(|e| Error::custom(format!("Failed to discover Python environment: {}", e)))?;
+
+        let mini_python = python_env.mini_python.clone();
+        let python_include = python_env.include_flag.clone();
+        let python_version = vec![
+            python_env.version.major,
+            python_env.version.minor,
+            python_env.version.patch,
+        ];
+
         #[cfg(unix)]
         let pywrapgen = simics_base.join(HOST_DIRNAME).join("bin").join("pywrapgen");
-
-        #[cfg(windows)]
-        let mini_python = {
-            let traditional_path = simics_base.join("bin").join("mini-python.exe");
-            if traditional_path.exists() {
-                traditional_path
-            } else {
-                // Fallback for Simics 7.28.0+ where mini-python is in separate Python package (1033)
-                let parent_dir = simics_base.parent().unwrap();
-                parent_dir
-                    .join("simics-python-7.10.0")
-                    .join(HOST_DIRNAME)
-                    .join("bin")
-                    .join("mini-python.exe")
-            }
-        };
         #[cfg(windows)]
         let pywrapgen = simics_base
             .join(HOST_DIRNAME)
@@ -675,97 +630,8 @@ impl CInterface {
 
         let pywrap_dir = simics_base.join(HOST_DIRNAME).join("bin").join("pywrap");
 
-        let python_include = var(PYTHON3_INCLUDE_ENV).unwrap_or_else(|_| {
-            // Try traditional path first
-            if let Some(include_path) = subdir(simics_base.join(HOST_DIRNAME).join("include")) {
-                format!("-I{}", include_path.display())
-            } else {
-                // Fallback for Simics 7.28.0+ where Python headers are in separate package (1033)
-                println!("cargo:warning=Traditional Python include path not found, trying Simics Python package fallback");
-                let parent_dir = simics_base.parent().unwrap();
-                let python_include_path = parent_dir
-                    .join("simics-python-7.10.0")
-                    .join(HOST_DIRNAME)
-                    .join("include");
-                if let Some(include_path) = subdir(&python_include_path) {
-                    format!("-I{}", include_path.display())
-                } else {
-                    panic!("Python include directory not found at {} or fallback location", 
-                           simics_base.join(HOST_DIRNAME).join("include").display())
-                }
-            }
-        });
-
-        let python_include_path = subdir(simics_base.join(HOST_DIRNAME).join("include"))
-            .or_else(|| {
-                // Fallback for Simics 7.28.0+ where Python headers are in separate package (1033)
-                let parent_dir = simics_base.parent().unwrap();
-                let python_include_path = parent_dir
-                    .join("simics-python-7.10.0")
-                    .join(HOST_DIRNAME)
-                    .join("include");
-                subdir(&python_include_path)
-            })
-            .ok_or_else(|| {
-                Error::custom(format!(
-                    "Failed to get include directory subdirectory of {} or fallback location",
-                    simics_base.join(HOST_DIRNAME).join("include").display()
-                ))
-            })?;
-
-        // SPlit the include path filename like python3.9.3 into [3, 9, 3]
-        let python_include_path_filename = python_include_path
-            .file_name()
-            .ok_or_else(|| Error::custom("Failed to get include path filename"))?
-            .to_str()
-            .expect("Failed to convert include path filename to str")
-            .replace("python", "");
-
-        let python_version = python_include_path_filename
-            .split('.')
-            .map(|s| {
-                s.parse::<u32>().map_err(|e| {
-                    Error::custom(format!("Failed to parse python version number part: {}", e))
-                })
-            })
-            .collect::<Result<Vec<_>>>()?;
-
-        #[cfg(unix)]
-        let libpython_path = var(PYTHON3_LDFLAGS_ENV)
-            .map(PathBuf::from)
-            .unwrap_or_else(|_| {
-                let traditional_path = simics_base
-                    .join(HOST_DIRNAME)
-                    .join("sys")
-                    .join("lib")
-                    .join(format!("libpython3.{CDYLIB_SUFFIX}"));
-                if traditional_path.exists() {
-                    traditional_path
-                } else {
-                    // Fallback for Simics 7.28.0+ where libpython is in separate Python package (1033)
-                    let parent_dir = simics_base.parent().unwrap();
-                    parent_dir
-                        .join("simics-python-7.10.0")
-                        .join(HOST_DIRNAME)
-                        .join("sys")
-                        .join("lib")
-                        .join(format!("libpython3.{CDYLIB_SUFFIX}"))
-                }
-            });
-
-        #[cfg(windows)]
-        let libpython_path = var(PYTHON3_LDFLAGS_ENV).map(PathBuf::from).unwrap_or(
-            simics_base
-                .join(HOST_DIRNAME)
-                .join("lib")
-                .join(
-                    subdir(simics_base.join(HOST_DIRNAME).join("include"))
-                        .ok_or_else(|| Error::custom(format!("Failed to get include dir")))?
-                        .file_name()
-                        .ok_or_else(|| Error::custom("Failed to get include dir filename"))?,
-                )
-                .join(format!("python3.{CDYLIB_SUFFIX}")),
-        );
+        // Use Python environment for library paths
+        let libpython_path = python_env.lib_path.clone();
 
         #[cfg(windows)]
         let libpython_path_static = var(PYTHON3_LDFLAGS_ENV).map(PathBuf::from).unwrap_or(

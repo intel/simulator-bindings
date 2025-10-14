@@ -3,11 +3,13 @@
 
 use anyhow::{anyhow, ensure, Result};
 use ispm_wrapper::ispm::{self, GlobalOptions};
+use simics_python_utils::discover_python_environment_from_base;
 use std::{
     env::var,
     fs::read_dir,
     path::{Path, PathBuf},
 };
+use versions;
 
 /// Get the only subdirectory of a directory, if only one exists. If zero or more than one subdirectories
 /// exist, returns an error
@@ -59,12 +61,49 @@ pub fn emit_cfg_directives() -> Result<()> {
 
     emit_expected_cfg_directives();
 
-    let simics_api_version = versions::Versioning::new(simics_api_sys::SIMICS_VERSION)
-        .ok_or_else(|| anyhow!("Invalid version {}", simics_api_sys::SIMICS_VERSION))?;
+    // Detect Simics version using the same logic as emit_link_info()
+    let simics_version = if let Ok(simics_base) = var("SIMICS_BASE") {
+        // Extract version from SIMICS_BASE path
+        let base_path = PathBuf::from(simics_base);
+        if let Some(dir_name) = base_path.file_name().and_then(|n| n.to_str()) {
+            if let Some(version_part) = dir_name.strip_prefix("simics-") {
+                version_part.to_string()
+            } else {
+                anyhow::bail!(
+                    "Could not extract version from SIMICS_BASE path: {}",
+                    base_path.display()
+                );
+            }
+        } else {
+            anyhow::bail!(
+                "Could not get directory name from SIMICS_BASE path: {}",
+                base_path.display()
+            );
+        }
+    } else {
+        // Use ISPM to find base package version
+        let mut packages = ispm::packages::list(&GlobalOptions::default())?;
+        packages.sort();
 
-    // Exports a configuration directive indicating which Simics version is *compiled* against.
+        let Some(installed) = packages.installed_packages.as_ref() else {
+            anyhow::bail!("No SIMICS_BASE variable set and did not get any installed packages");
+        };
+        let Some(base) = installed.iter().find(|p| p.package_number == 1000) else {
+            anyhow::bail!(
+                "No SIMICS_BASE variable set and did not find a package with package number 1000"
+            );
+        };
+        base.version.clone()
+    };
+
+    // Parse version using the versions crate for proper handling
+    let simics_api_version = versions::Versioning::new(&simics_version)
+        .ok_or_else(|| anyhow!("Invalid version {}", simics_version))?;
+
+    // Emit full version cfg directive (e.g., simics_version = "6.0.185")
     println!(r#"cargo:rustc-cfg=simics_version="{}""#, simics_api_version);
 
+    // Emit major version cfg directive (e.g., simics_version = "6")
     println!(
         r#"cargo:rustc-cfg=simics_version="{}""#,
         simics_api_version
@@ -102,10 +141,12 @@ pub fn emit_link_info() -> Result<()> {
             );
         };
         println!("cargo:warning=Using Simics base version {}", base.version);
-        base.paths
+        let base_path = base
+            .paths
             .first()
             .ok_or_else(|| anyhow!("No paths found for package with package number 1000"))?
-            .clone()
+            .clone();
+        base_path
     };
 
     #[cfg(unix)]
@@ -119,67 +160,12 @@ pub fn emit_link_info() -> Result<()> {
 
         let libvtutils = bin_dir.join("libvtutils.so").canonicalize()?;
 
-        // Try both traditional and fallback sys/lib directories
-        let sys_lib_dirs = vec![
-            base_dir_path.join(HOST_DIRNAME).join("sys").join("lib"),
-            base_dir_path
-                .parent()
-                .unwrap()
-                .join("simics-python-7.10.0")
-                .join(HOST_DIRNAME)
-                .join("sys")
-                .join("lib"),
-        ];
-
-        let mut libpython_found = None;
-        let mut used_sys_lib_dir = None;
-
-        for sys_lib_path in &sys_lib_dirs {
-            println!(
-                "cargo:warning=Trying libpython path: {}",
-                sys_lib_path.display()
-            );
-            if let Ok(sys_lib_dir) = sys_lib_path.canonicalize() {
-                if let Some(libpython_path) = read_dir(&sys_lib_dir).ok().and_then(|entries| {
-                    entries
-                        .filter_map(|p| p.ok())
-                        .filter(|p| p.path().is_file())
-                        .filter(|p| {
-                            let path = p.path();
-                            let Some(file_name) = path.file_name() else {
-                                return false;
-                            };
-                            let Some(file_name) = file_name.to_str() else {
-                                return false;
-                            };
-                            file_name.starts_with("libpython")
-                                && file_name.contains(".so")
-                                && file_name != "libpython3.so"
-                        })
-                        .map(|p| p.path())
-                        .next()
-                }) {
-                    println!(
-                        "cargo:warning=Found libpython in: {}",
-                        sys_lib_dir.display()
-                    );
-                    libpython_found = Some(libpython_path);
-                    used_sys_lib_dir = Some(sys_lib_dir);
-                    break;
-                }
-            }
-        }
-
-        let (sys_lib_dir, libpython_path) = match (used_sys_lib_dir, libpython_found) {
-            (Some(dir), Some(path)) => (dir, path),
-            _ => {
-                return Err(anyhow!(
-                    "No libpythonX.XX.so.X.X found in any sys/lib directory"
-                ))
-            }
-        };
-
-        let libpython = sys_lib_dir.join(libpython_path);
+        // Discover Python environment using unified detection
+        let python_env = discover_python_environment_from_base(&base_dir_path)?;
+        println!(
+            "cargo:warning=Using Python environment for linking: {}",
+            python_env
+        );
 
         println!(
             "cargo:rustc-link-lib=dylib:+verbatim={}",
@@ -199,11 +185,7 @@ pub fn emit_link_info() -> Result<()> {
         );
         println!(
             "cargo:rustc-link-lib=dylib:+verbatim={}",
-            libpython
-                .file_name()
-                .ok_or_else(|| anyhow!("No file name found for {}", libpython.display()))?
-                .to_str()
-                .ok_or_else(|| anyhow!("Could not convert path to string"))?
+            python_env.lib_filename()?
         );
         println!(
             "cargo:rustc-link-search=native={}",
@@ -213,7 +195,8 @@ pub fn emit_link_info() -> Result<()> {
         );
         println!(
             "cargo:rustc-link-search=native={}",
-            sys_lib_dir
+            python_env
+                .lib_dir
                 .to_str()
                 .ok_or_else(|| anyhow!("Could not convert path to string"))?
         );
@@ -221,7 +204,8 @@ pub fn emit_link_info() -> Result<()> {
             bin_dir
                 .to_str()
                 .ok_or_else(|| anyhow!("Could not convert path to string"))?,
-            sys_lib_dir
+            python_env
+                .lib_dir
                 .to_str()
                 .ok_or_else(|| anyhow!("Could not convert path to string"))?,
         ]

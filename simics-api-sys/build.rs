@@ -20,6 +20,7 @@ pub mod common {
     };
     use ispm_wrapper::ispm::{self, GlobalOptions};
     use scraper::{Html, Selector};
+    use simics_python_utils::discover_python_environment_from_base;
     use std::{
         collections::HashSet,
         env::var,
@@ -447,34 +448,12 @@ pub mod common {
                 }
             };
 
+            // Discover Python environment using unified detection
+            let python_env = discover_python_environment_from_base(base_dir_path.as_ref())?;
+            println!("cargo:warning=Using Python environment: {}", python_env);
+
             let bindings = Builder::default()
-                .clang_arg(
-                    subdir(base_dir_path.as_ref().join(HOST_DIRNAME).join("include"))
-                        .and_then(|p| {
-                            p.to_str()
-                                .map(|s| format!("-I{}", s))
-                                .ok_or_else(|| anyhow!("Could not convert path to string"))
-                        })
-                        .or_else(|_| {
-                            // Fallback for Simics 7.28.0+ where Python headers are in separate package (1033)
-                            println!("cargo:warning=Traditional Python include path not found, trying Simics Python package fallback");
-                            let parent_dir = base_dir_path.as_ref().parent().unwrap();
-                            let python_include_path = parent_dir
-                                .join("simics-python-7.10.0")
-                                .join(HOST_DIRNAME)
-                                .join("include");
-                            if python_include_path.exists() {
-                                subdir(&python_include_path)
-                                    .and_then(|p| {
-                                        p.to_str()
-                                            .map(|s| format!("-I{}", s))
-                                            .ok_or_else(|| anyhow!("Could not convert path to string"))
-                                    })
-                            } else {
-                                bail!("Python include directory not found at {}", python_include_path.display())
-                            }
-                        })?,
-                )
+                .clang_arg(&python_env.include_flag)
                 .clang_arg(format!("-I{}", &wrapper_include_path))
                 .clang_arg("-fretain-comments-from-system-headers")
                 .clang_arg("-fparse-all-comments")
@@ -753,11 +732,7 @@ pub mod common {
     }
 
     pub fn emit_link_info() -> Result<()> {
-        #[cfg(unix)]
-        const HOST_DIRNAME: &str = "linux64";
-
-        #[cfg(not(unix))]
-        const HOST_DIRNAME: &'static str = "win64";
+        use crate::common::HOST_DIRNAME;
 
         let base_dir_path = if let Ok(simics_base) = var(SIMICS_BASE_ENV) {
             PathBuf::from(simics_base)
@@ -791,67 +766,12 @@ pub mod common {
 
             let libvtutils = bin_dir.join("libvtutils.so").canonicalize()?;
 
-            // Try both traditional and fallback sys/lib directories
-            let sys_lib_dirs = vec![
-                base_dir_path.join(HOST_DIRNAME).join("sys").join("lib"),
-                base_dir_path
-                    .parent()
-                    .unwrap()
-                    .join("simics-python-7.10.0")
-                    .join(HOST_DIRNAME)
-                    .join("sys")
-                    .join("lib"),
-            ];
-
-            let mut libpython_found = None;
-            let mut used_sys_lib_dir = None;
-
-            for sys_lib_path in &sys_lib_dirs {
-                println!(
-                    "cargo:warning=Trying libpython path: {}",
-                    sys_lib_path.display()
-                );
-                if let Ok(sys_lib_dir) = sys_lib_path.canonicalize() {
-                    if let Some(libpython_path) = read_dir(&sys_lib_dir).ok().and_then(|entries| {
-                        entries
-                            .filter_map(|p| p.ok())
-                            .filter(|p| p.path().is_file())
-                            .filter(|p| {
-                                let path = p.path();
-                                let Some(file_name) = path.file_name() else {
-                                    return false;
-                                };
-                                let Some(file_name) = file_name.to_str() else {
-                                    return false;
-                                };
-                                file_name.starts_with("libpython")
-                                    && file_name.contains(".so")
-                                    && file_name != "libpython3.so"
-                            })
-                            .map(|p| p.path())
-                            .next()
-                    }) {
-                        println!(
-                            "cargo:warning=Found libpython in: {}",
-                            sys_lib_dir.display()
-                        );
-                        libpython_found = Some(libpython_path);
-                        used_sys_lib_dir = Some(sys_lib_dir);
-                        break;
-                    }
-                }
-            }
-
-            let (sys_lib_dir, libpython_path) = match (used_sys_lib_dir, libpython_found) {
-                (Some(dir), Some(path)) => (dir, path),
-                _ => {
-                    return Err(anyhow!(
-                        "No libpythonX.XX.so.X.X found in any sys/lib directory"
-                    ))
-                }
-            };
-
-            let libpython = sys_lib_dir.join(libpython_path);
+            // Discover Python environment using unified detection
+            let python_env = discover_python_environment_from_base(&base_dir_path)?;
+            println!(
+                "cargo:warning=Using Python environment for linking: {}",
+                python_env
+            );
 
             println!(
                 "cargo:rustc-link-lib=dylib:+verbatim={}",
@@ -874,11 +794,7 @@ pub mod common {
             );
             println!(
                 "cargo:rustc-link-lib=dylib:+verbatim={}",
-                libpython
-                    .file_name()
-                    .ok_or_else(|| anyhow!("No file name found for {}", libpython.display()))?
-                    .to_str()
-                    .ok_or_else(|| anyhow!("Could not convert path to string"))?
+                python_env.lib_filename()?
             );
             println!(
                 "cargo:rustc-link-search=native={}",
@@ -888,7 +804,8 @@ pub mod common {
             );
             println!(
                 "cargo:rustc-link-search=native={}",
-                sys_lib_dir
+                python_env
+                    .lib_dir
                     .to_str()
                     .ok_or_else(|| anyhow!("Could not convert path to string"))?
             );
@@ -896,7 +813,8 @@ pub mod common {
                 bin_dir
                     .to_str()
                     .ok_or_else(|| anyhow!("Could not convert path to string"))?,
-                sys_lib_dir
+                python_env
+                    .lib_dir
                     .to_str()
                     .ok_or_else(|| anyhow!("Could not convert path to string"))?,
             ]

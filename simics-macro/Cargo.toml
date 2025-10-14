@@ -36,3 +36,4 @@ syn = { version = "2.0.77", features = ["full"] }
 ispm-wrapper = { workspace = true }
 simics-api-sys = { workspace = true }
 simics-sign = { workspace = true }
+simics-python-utils = { workspace = true }
