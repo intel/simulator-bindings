@@ -32,5 +32,5 @@ typed-builder = "0.20.0"
 versions = { version = "6.2.0", features = ["serde"] }
 walkdir = "2.5.0"
 
-cargo-simics-build = { version = "0.1.0", workspace = true }
-ispm-wrapper = { version = "0.1.0", workspace = true }
+cargo-simics-build = { workspace = true }
+ispm-wrapper = { workspace = true }

@@ -26,10 +26,10 @@ crate-type = ["cdylib"]
 [dependencies]
 ffi2 = "0.1.0"
 
-simics = { version = "0.1.1", workspace = true }
+simics = { workspace = true }
 
 [build-dependencies]
-simics-build-utils = { version = "0.1.0", workspace = true }
+simics-build-utils = { workspace = true }
 
 [dev-dependencies]
 anyhow = "1.0.86"
@@ -37,5 +37,5 @@ command-ext = "0.1.2"
 indoc = "2.0.5"
 versions = { version = "6.2.0", features = ["serde"] }
 
-ispm-wrapper = { version = "0.1.0", workspace = true }
-simics-test = { version = "0.1.0", workspace = true }
+ispm-wrapper = { workspace = true }
+simics-test = { workspace = true }

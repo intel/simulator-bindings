@@ -30,6 +30,6 @@ command-ext = "0.1.2"
 itertools = "0.13.0"
 thiserror = "1.0.63"
 
-ispm-wrapper = { version = "0.1.0", workspace = true }
-simics-package = { version = "0.1.0", workspace = true }
-simics-sign = { version = "0.1.0", workspace = true }
+ispm-wrapper = { workspace = true }
+simics-package = { workspace = true }
+simics-sign = { workspace = true }

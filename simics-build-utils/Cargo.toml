@@ -25,5 +25,5 @@ categories = [
 anyhow = "1.0.88"
 versions = { version = "6.2.0", features = ["serde"] }
 
-ispm-wrapper = { version = "0.1.0", workspace = true }
-simics-api-sys = { version = "0.1.1", workspace = true }
+ispm-wrapper = { workspace = true }
+simics-api-sys = { workspace = true }

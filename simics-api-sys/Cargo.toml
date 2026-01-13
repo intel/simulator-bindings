@@ -30,7 +30,7 @@ bindgen = "0.70.1"
 scraper = "0.20.0"
 walkdir = "2.5.0"
 
-ispm-wrapper = { version = "0.1.0", workspace = true }
+ispm-wrapper = { workspace = true }
 
 [dev-dependencies]
 anyhow = "1.0.88"
