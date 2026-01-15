@@ -165,13 +165,12 @@ jobs:
         with:
           egress-policy: audit
 
-      - name: Add ISPM and MinGW to PATH
+      # Avoid Github Runner's defaulting to c:\mingw64\bin before our MinGW
+      - name: Force my MinGW/ISPM first in PATH
+        shell: pwsh
         run: |
-          set PATH $env:PATH
-          "C:\MinGW\bin" | Out-File -FilePath $env:GITHUB_PATH
-          "C:\ISPM\" | Out-File -FilePath $env:GITHUB_PATH -Append
-          "$PATH" | Out-File -FilePath $env:GITHUB_PATH -Append
-          echo "Current PATH: " $env:GITHUB_PATH
+          $prepend = 'C:\MinGW\bin;C:\ISPM'
+          "PATH=$prepend;$env:PATH" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Cache MinGW
         id: cache-mingw
@@ -197,7 +196,8 @@ jobs:
           echo "Downloading Rustup"
           Invoke-WebRequest -URI https://win.rustup.rs/x86_64 -OutFile C:\rustup-init.exe
           echo "Installing Rust"
-          C:\rustup-init.exe --default-toolchain nightly --default-host x86_64-pc-windows-gnu -y
+          # none toolchain so cargo can pick rust-toolchain file when building
+          C:\rustup-init.exe --default-toolchain none --default-host x86_64-pc-windows-gnu -y
 
       - name: Cache SIMICS
         id: cache-simics-packages-windows
