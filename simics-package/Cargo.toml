@@ -29,7 +29,7 @@ command-ext = "0.1.2"
 flate2 = "1.0.33"
 serde = { version = "1.0.210", features = ["derive"] }
 serde_json = "1.0.128"
-serde_yaml = "0.9.34+deprecated"
+serde_yaml = "0.9.34"
 tar = "0.4.41"
 thiserror = "1.0.63"
 typed-builder = "0.20.0"
