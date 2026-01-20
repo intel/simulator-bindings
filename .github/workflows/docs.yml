@@ -45,7 +45,7 @@ jobs:
 
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@nightly-2026-01-20
 
       - name: Install mdBook
         run: |
@@ -97,7 +97,7 @@ jobs:
           export CARGO_TARGET_DIR="/mnt/cargo-target"
           sudo mkdir -p "$CARGO_TARGET_DIR"
           sudo chown -R "$USER:$USER" "$CARGO_TARGET_DIR"
-          SIMICS_BASE="${HOME}/simics/simics-${{ env.PUBLIC_SIMICS_PACKAGE_VERSION_1000 }}" RUSTDOCFLAGS="--enable-index-page -Zunstable-options" cargo doc --document-private-items --workspace --no-deps
+          SIMICS_BASE="${HOME}/simics/simics-${{ env.PUBLIC_SIMICS_PACKAGE_VERSION_1000 }}" RUSTDOCFLAGS="--enable-index-page -Zunstable-options" cargo +nightly doc --document-private-items --workspace --no-deps
           # Ensure the destination directory exists before copying
           mkdir -p docs/book/html/crates/
           cp -a "$CARGO_TARGET_DIR/doc/" docs/book/html/crates/
