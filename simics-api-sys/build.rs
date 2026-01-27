@@ -1053,6 +1053,38 @@ fn main() -> Result<()> {
 //     -s ~/simics/simics-7.36.0 \
 //     -s ~/simics/simics-7.37.0 \
 //     -s ~/simics/simics-7.38.0 \
+//     -s ~/simics/simics-7.39.0 \
+//     -s ~/simics/simics-7.40.0 \
+//     -s ~/simics/simics-7.41.0 \
+//     -s ~/simics/simics-7.42.0 \
+//     -s ~/simics/simics-7.43.0 \
+//     -s ~/simics/simics-7.44.0 \
+//     -s ~/simics/simics-7.45.0 \
+//     -s ~/simics/simics-7.46.0 \
+//     -s ~/simics/simics-7.47.0 \
+//     -s ~/simics/simics-7.48.0 \
+//     -s ~/simics/simics-7.49.0 \
+//     -s ~/simics/simics-7.50.0 \
+//     -s ~/simics/simics-7.51.0 \
+//     -s ~/simics/simics-7.52.0 \
+//     -s ~/simics/simics-7.53.0 \
+//     -s ~/simics/simics-7.54.0 \
+//     -s ~/simics/simics-7.55.0 \
+//     -s ~/simics/simics-7.56.0 \
+//     -s ~/simics/simics-7.57.0 \
+//     -s ~/simics/simics-7.58.0 \
+//     -s ~/simics/simics-7.59.0 \
+//     -s ~/simics/simics-7.60.0 \
+//     -s ~/simics/simics-7.61.0 \
+//     -s ~/simics/simics-7.62.0 \
+//     -s ~/simics/simics-7.63.0 \
+//     -s ~/simics/simics-7.64.0 \
+//     -s ~/simics/simics-7.65.0 \
+//     -s ~/simics/simics-7.66.0 \
+//     -s ~/simics/simics-7.67.0 \
+//     -s ~/simics/simics-7.68.0 \
+//     -s ~/simics/simics-7.69.0 \
+//     -s ~/simics/simics-7.70.0 \
 //     -o simics-api-sys/simics_api_items.rs
 // ```
 //
