@@ -14,11 +14,11 @@ repository.workspace = true
 license.workspace = true
 keywords.workspace = true
 categories.workspace = true
-publish.workspace = true
+publish = true
 
 [dependencies]
 anyhow = "1.0.88"
-ispm-wrapper = { path = "../ispm-wrapper" }
+ispm-wrapper = { workspace = true }
 versions = "6.3.2"
 
 [dev-dependencies]

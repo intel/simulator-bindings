@@ -36,6 +36,8 @@ jobs:
         run: |
           cargo publish --no-verify --package ispm-wrapper
           sleep 120
+          cargo publish --no-verify --package simics-python-utils
+          sleep 120
           cargo publish --no-verify --package simics-package
           sleep 120
           cargo publish --no-verify --package simics-sign
