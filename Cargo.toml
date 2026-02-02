@@ -13,14 +13,14 @@ categories = [
     "emulators",
 ]
 description = "SIMICS bindings and utilities for Rust"
-documentation = ""
+documentation = "https://intel.github.io/simulator-bindings/"
 edition = "2021"
-homepage = ""
+homepage = "https://github.com/intel/simulator-bindings"
 keywords = ["simics", "simulator", "intel", "x86", "modeling"]
 license = "Apache-2.0"
 publish = false
 readme = "README.md"
-repository = ""
+repository = "https://github.com/intel/simulator-bindings"
 
 [workspace]
 resolver = "2"
