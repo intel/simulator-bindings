@@ -22,7 +22,7 @@ use syn::{
 };
 
 // Constants now provided by simics-python-utils
-use simics_python_utils::HOST_DIRNAME;
+use simics_python_utils::{HOST_DIRNAME, PYTHON3_LDFLAGS_ENV};
 
 #[derive(Debug, Clone, FromMeta)]
 pub struct InterfaceAttr {

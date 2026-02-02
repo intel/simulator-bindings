@@ -19,13 +19,144 @@ use versions::Versioning;
 pub const HOST_DIRNAME: &str = "linux64";
 
 #[cfg(windows)]
-/// The name of the binary/library/object subdirectory on Windows systems  
+/// The name of the binary/library/object subdirectory on Windows systems
 pub const HOST_DIRNAME: &str = "win64";
 
 /// Environment variable name for Python include path override
 pub const PYTHON3_INCLUDE_ENV: &str = "PYTHON3_INCLUDE";
-/// Environment variable name for Python library path override  
+/// Environment variable name for Python library path override
 pub const PYTHON3_LDFLAGS_ENV: &str = "PYTHON3_LDFLAGS";
+
+// ============================================================================
+// Platform Configuration - All platform differences centralized here
+// ============================================================================
+
+/// Platform-specific configuration for Python library discovery
+#[derive(Debug, Clone)]
+struct PlatformConfig {
+    /// Subdirectory components from base_path to library directory
+    /// Unix: ["sys", "lib"], Windows: ["bin"]
+    lib_subdir: &'static [&'static str],
+    /// Prefix for Python library files (e.g., "libpython" or "python3")
+    lib_prefix: &'static str,
+    /// Extension for Python library files (e.g., ".so" or ".dll")
+    lib_extension: &'static str,
+    /// Generic library name to filter out in favor of versioned one
+    generic_lib_name: &'static str,
+}
+
+#[cfg(unix)]
+const PLATFORM_CONFIG: PlatformConfig = PlatformConfig {
+    lib_subdir: &["sys", "lib"],
+    lib_prefix: "libpython",
+    lib_extension: ".so",
+    generic_lib_name: "libpython3.so",
+};
+
+#[cfg(windows)]
+const PLATFORM_CONFIG: PlatformConfig = PlatformConfig {
+    lib_subdir: &["bin"],
+    lib_prefix: "python3",
+    lib_extension: ".dll",
+    generic_lib_name: "python3.dll",
+};
+
+// ============================================================================
+// Core Discovery Logic - Platform agnostic, testable
+// ============================================================================
+
+/// Check if a filename matches the Python library pattern for a given config
+fn is_python_library_name(name: &str, config: &PlatformConfig) -> bool {
+    name.starts_with(config.lib_prefix) && name.contains(config.lib_extension)
+}
+
+/// Filter library files to prefer versioned ones over generic
+fn filter_python_libraries_with_config(files: &mut Vec<PathBuf>, config: &PlatformConfig) {
+    // Remove generic library in favor of versioned one
+    if files.len() > 1 {
+        files.retain(|path| {
+            path.file_name()
+                .and_then(|name| name.to_str())
+                .map(|name| name != config.generic_lib_name)
+                .unwrap_or(false)
+        });
+    }
+
+    // On Unix, also prefer .so.X.Y over plain .so (e.g., libpython3.9.so.1.0 over libpython3.9.so)
+    if config.lib_extension == ".so" && files.len() > 1 {
+        files.retain(|path| {
+            path.file_name()
+                .and_then(|name| name.to_str())
+                .map(|name| !name.ends_with(".so"))
+                .unwrap_or(false)
+        });
+    }
+}
+
+/// Build library directory path from base path and config
+fn get_lib_dir(base_path: &Path, config: &PlatformConfig) -> PathBuf {
+    config
+        .lib_subdir
+        .iter()
+        .fold(base_path.to_path_buf(), |p, component| p.join(component))
+}
+
+/// Find Python library in a directory using the given config
+fn find_libpython_in_dir_with_config(
+    lib_dir: &Path,
+    config: &PlatformConfig,
+) -> Result<(PathBuf, PathBuf)> {
+    if !lib_dir.exists() {
+        return Err(anyhow!(
+            "Library directory does not exist: {}",
+            lib_dir.display()
+        ));
+    }
+
+    let entries = read_dir(lib_dir).map_err(|e| {
+        anyhow!(
+            "Failed to read library directory {}: {}",
+            lib_dir.display(),
+            e
+        )
+    })?;
+
+    let mut libpython_files: Vec<PathBuf> = entries
+        .filter_map(|entry| entry.ok())
+        .map(|entry| entry.path())
+        .filter(|path| path.is_file())
+        .filter(|path| {
+            path.file_name()
+                .and_then(|name| name.to_str())
+                .map(|name| is_python_library_name(name, config))
+                .unwrap_or(false)
+        })
+        .collect();
+
+    filter_python_libraries_with_config(&mut libpython_files, config);
+
+    match libpython_files.len() {
+        0 => Err(anyhow!(
+            "No Python library file found in {}",
+            lib_dir.display()
+        )),
+        1 => {
+            let lib_path = libpython_files
+                .into_iter()
+                .next()
+                .expect("exactly one element guaranteed by match arm");
+            Ok((lib_dir.to_path_buf(), lib_path))
+        }
+        _ => Err(anyhow!(
+            "Multiple Python library files found in {}, expected exactly one",
+            lib_dir.display()
+        )),
+    }
+}
+
+// ============================================================================
+// ISPM Package Discovery
+// ============================================================================
 
 /// Find the latest Python package (1033) for a given Simics major version using ISPM API
 fn find_latest_python_package(simics_major_version: u32) -> Result<InstalledPackage> {
@@ -87,6 +218,10 @@ fn detect_simics_major_version_from_base(simics_base: &Path) -> Result<u32> {
         simics_base.display()
     ))
 }
+
+// ============================================================================
+// Public API
+// ============================================================================
 
 /// Auto-discover Python environment from SIMICS_BASE environment variable
 pub fn discover_python_environment() -> Result<PythonEnvironment> {
@@ -161,7 +296,8 @@ fn discover_from_base_path(base_path: PathBuf) -> Result<PythonEnvironment> {
     let mini_python = find_mini_python(&base_path)?;
     // SIMICS_BASE/HOST_DIRNAME/include/python3.X
     let include_dir = find_python_include(&base_path)?;
-    // SIMICS_BASE/HOST_DIRNAME/sys/lib/libpython3.X.so.Y.Z
+    // Unix: SIMICS_BASE/HOST_DIRNAME/sys/lib/libpython3.X.so.Y.Z
+    // Windows: SIMICS_BASE/HOST_DIRNAME/bin/python3.X.dll
     let (lib_dir, lib_path) = find_python_library(&base_path)?;
     let version = PythonVersion::parse_from_include_dir(&include_dir)?;
 
@@ -265,7 +401,7 @@ fn find_python_subdir(include_dir: &Path) -> Result<PathBuf> {
     }
 }
 
-/// Find Python library directory and specific libpython file
+/// Find Python library directory and specific library file
 fn find_python_library(base_path: &Path) -> Result<(PathBuf, PathBuf)> {
     // Check environment variable first for compatibility
     if let Ok(lib_env) = env::var(PYTHON3_LDFLAGS_ENV) {
@@ -279,86 +415,196 @@ fn find_python_library(base_path: &Path) -> Result<(PathBuf, PathBuf)> {
         }
     }
 
-    let sys_lib_dir = base_path.join("sys").join("lib");
-    find_libpython_in_dir(&sys_lib_dir)
+    let lib_dir = get_lib_dir(base_path, &PLATFORM_CONFIG);
+    find_libpython_in_dir_with_config(&lib_dir, &PLATFORM_CONFIG)
 }
 
-/// Find a libpython*.so file in the given directory
-fn find_libpython_in_dir(lib_dir: &Path) -> Result<(PathBuf, PathBuf)> {
-    if !lib_dir.exists() {
-        return Err(anyhow!(
-            "Library directory does not exist: {}",
-            lib_dir.display()
-        ));
-    }
-
-    let entries = read_dir(lib_dir).map_err(|e| {
-        anyhow!(
-            "Failed to read library directory {}: {}",
-            lib_dir.display(),
-            e
-        )
-    })?;
-
-    let mut libpython_files: Vec<PathBuf> = entries
-        .filter_map(|entry| entry.ok())
-        .map(|entry| entry.path())
-        .filter(|path| path.is_file())
-        .filter(|path| {
-            if let Some(file_name) = path.file_name().and_then(|name| name.to_str()) {
-                file_name.starts_with("libpython")
-            } else {
-                false
-            }
-        })
-        .collect();
-
-    if libpython_files.len() > 1 {
-        libpython_files.retain(|path| {
-            path.file_name()
-                .and_then(|name| name.to_str())
-                .map(|name| name != "libpython3.so")
-                .unwrap_or(false)
-        });
-    }
-
-    if libpython_files.len() > 1 {
-        libpython_files.retain(|path| {
-            path.file_name()
-                .and_then(|name| name.to_str())
-                .map(|name| !name.ends_with(".so"))
-                .unwrap_or(false)
-        });
-    }
-
-    match libpython_files.len() {
-        0 => Err(anyhow!(
-            "No libpython3.x.so file found in {}",
-            lib_dir.display()
-        )),
-        1 => {
-            let lib_path = libpython_files
-                .into_iter()
-                .next()
-                .expect("exactly one element guaranteed by match arm");
-            Ok((lib_dir.to_path_buf(), lib_path))
-        }
-        _ => Err(anyhow!(
-            "Multiple libpython files found in {}, expected exactly one",
-            lib_dir.display()
-        )),
-    }
-}
+// ============================================================================
+// Tests
+// ============================================================================
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::fs;
-    use std::path::PathBuf;
     use tempfile::TempDir;
 
+    // Test configs - can test BOTH platforms on ANY platform
+    const UNIX_CONFIG: PlatformConfig = PlatformConfig {
+        lib_subdir: &["sys", "lib"],
+        lib_prefix: "libpython",
+        lib_extension: ".so",
+        generic_lib_name: "libpython3.so",
+    };
+
+    const WINDOWS_CONFIG: PlatformConfig = PlatformConfig {
+        lib_subdir: &["bin"],
+        lib_prefix: "python3",
+        lib_extension: ".dll",
+        generic_lib_name: "python3.dll",
+    };
+
+    // ========================================================================
+    // Cross-platform unit tests for core logic
+    // ========================================================================
+
+    #[test]
+    fn test_is_python_library_name_unix() {
+        assert!(is_python_library_name("libpython3.9.so.1.0", &UNIX_CONFIG));
+        assert!(is_python_library_name("libpython3.so", &UNIX_CONFIG));
+        assert!(is_python_library_name("libpython3.9.so", &UNIX_CONFIG));
+        assert!(!is_python_library_name("python3.9.dll", &UNIX_CONFIG));
+        assert!(!is_python_library_name("libfoo.so", &UNIX_CONFIG));
+    }
+
+    #[test]
+    fn test_is_python_library_name_windows() {
+        assert!(is_python_library_name("python3.10.dll", &WINDOWS_CONFIG));
+        assert!(is_python_library_name("python3.dll", &WINDOWS_CONFIG));
+        assert!(!is_python_library_name("libpython3.9.so", &WINDOWS_CONFIG));
+        assert!(!is_python_library_name("python3.10.lib", &WINDOWS_CONFIG));
+        assert!(!is_python_library_name("python2.7.dll", &WINDOWS_CONFIG));
+    }
+
+    #[test]
+    fn test_get_lib_dir_unix() {
+        let base = PathBuf::from("/opt/simics/linux64");
+        let lib_dir = get_lib_dir(&base, &UNIX_CONFIG);
+        assert_eq!(lib_dir, PathBuf::from("/opt/simics/linux64/sys/lib"));
+    }
+
+    #[test]
+    fn test_get_lib_dir_windows() {
+        let base = PathBuf::from("/opt/simics/win64");
+        let lib_dir = get_lib_dir(&base, &WINDOWS_CONFIG);
+        assert_eq!(lib_dir, PathBuf::from("/opt/simics/win64/bin"));
+    }
+
+    #[test]
+    fn test_filter_removes_generic_unix() {
+        let mut files = vec![
+            PathBuf::from("/lib/libpython3.so"),
+            PathBuf::from("/lib/libpython3.9.so.1.0"),
+        ];
+        filter_python_libraries_with_config(&mut files, &UNIX_CONFIG);
+        assert_eq!(files.len(), 1);
+        assert!(files[0].to_string_lossy().contains("libpython3.9.so.1.0"));
+    }
+
+    #[test]
+    fn test_filter_removes_generic_windows() {
+        let mut files = vec![
+            PathBuf::from("/bin/python3.dll"),
+            PathBuf::from("/bin/python3.10.dll"),
+        ];
+        filter_python_libraries_with_config(&mut files, &WINDOWS_CONFIG);
+        assert_eq!(files.len(), 1);
+        assert!(files[0].to_string_lossy().contains("python3.10.dll"));
+    }
+
+    #[test]
+    fn test_filter_prefers_versioned_so_unix() {
+        let mut files = vec![
+            PathBuf::from("/lib/libpython3.9.so"),
+            PathBuf::from("/lib/libpython3.9.so.1.0"),
+        ];
+        filter_python_libraries_with_config(&mut files, &UNIX_CONFIG);
+        assert_eq!(files.len(), 1);
+        assert!(files[0].to_string_lossy().ends_with(".so.1.0"));
+    }
+
+    #[test]
+    fn test_filter_keeps_single_file() {
+        let mut files = vec![PathBuf::from("/lib/libpython3.9.so.1.0")];
+        filter_python_libraries_with_config(&mut files, &UNIX_CONFIG);
+        assert_eq!(files.len(), 1);
+    }
+
+    // ========================================================================
+    // Integration tests with mock filesystem
+    // ========================================================================
+
+    #[test]
+    fn test_find_libpython_unix_structure() -> Result<()> {
+        let temp_dir = TempDir::new()?;
+        let lib_dir = temp_dir.path().join("sys").join("lib");
+        fs::create_dir_all(&lib_dir)?;
+        fs::write(lib_dir.join("libpython3.9.so.1.0"), "")?;
+
+        let base_path = temp_dir.path();
+        let actual_lib_dir = get_lib_dir(base_path, &UNIX_CONFIG);
+        let (found_dir, found_path) =
+            find_libpython_in_dir_with_config(&actual_lib_dir, &UNIX_CONFIG)?;
+
+        assert_eq!(found_dir, lib_dir);
+        assert!(found_path.to_string_lossy().contains("libpython3.9.so.1.0"));
+        Ok(())
+    }
+
+    #[test]
+    fn test_find_libpython_windows_structure() -> Result<()> {
+        let temp_dir = TempDir::new()?;
+        let bin_dir = temp_dir.path().join("bin");
+        fs::create_dir_all(&bin_dir)?;
+        fs::write(bin_dir.join("python3.10.dll"), "")?;
+
+        let base_path = temp_dir.path();
+        let actual_lib_dir = get_lib_dir(base_path, &WINDOWS_CONFIG);
+        let (found_dir, found_path) =
+            find_libpython_in_dir_with_config(&actual_lib_dir, &WINDOWS_CONFIG)?;
+
+        assert_eq!(found_dir, bin_dir);
+        assert!(found_path.to_string_lossy().contains("python3.10.dll"));
+        Ok(())
+    }
+
+    #[test]
+    fn test_multiple_libraries_error_unix() -> Result<()> {
+        let temp_dir = TempDir::new()?;
+        let lib_dir = temp_dir.path();
+        fs::write(lib_dir.join("libpython3.9.so.1.0"), "")?;
+        fs::write(lib_dir.join("libpython3.10.so.1.0"), "")?;
+
+        let err = find_libpython_in_dir_with_config(lib_dir, &UNIX_CONFIG).unwrap_err();
+        assert!(err.to_string().contains("Multiple Python library files"));
+        Ok(())
+    }
+
+    #[test]
+    fn test_multiple_libraries_error_windows() -> Result<()> {
+        let temp_dir = TempDir::new()?;
+        let lib_dir = temp_dir.path();
+        fs::write(lib_dir.join("python3.9.dll"), "")?;
+        fs::write(lib_dir.join("python3.10.dll"), "")?;
+
+        let err = find_libpython_in_dir_with_config(lib_dir, &WINDOWS_CONFIG).unwrap_err();
+        assert!(err.to_string().contains("Multiple Python library files"));
+        Ok(())
+    }
+
+    #[test]
+    fn test_no_library_error() -> Result<()> {
+        let temp_dir = TempDir::new()?;
+        let lib_dir = temp_dir.path();
+        // Create an empty directory
+
+        let err = find_libpython_in_dir_with_config(lib_dir, &UNIX_CONFIG).unwrap_err();
+        assert!(err.to_string().contains("No Python library file found"));
+        Ok(())
+    }
+
+    #[test]
+    fn test_nonexistent_directory_error() {
+        let lib_dir = PathBuf::from("/nonexistent/path");
+        let err = find_libpython_in_dir_with_config(&lib_dir, &UNIX_CONFIG).unwrap_err();
+        assert!(err.to_string().contains("does not exist"));
+    }
+
+    // ========================================================================
+    // Full discovery tests (platform-specific due to PLATFORM_CONFIG)
+    // ========================================================================
+
     fn create_mock_simics_structure(base_dir: &Path, python_version: &str) -> Result<()> {
-        // Create traditional structure
         let host_dir = base_dir.join(HOST_DIRNAME);
         fs::create_dir_all(host_dir.join("bin"))?;
         fs::create_dir_all(
@@ -366,22 +612,37 @@ mod tests {
                 .join("include")
                 .join(format!("python{}", python_version)),
         )?;
-        fs::create_dir_all(host_dir.join("sys").join("lib"))?;
 
-        // Create mock files
+        // Create mock mini-python
         let mini_python = if cfg!(windows) {
             "mini-python.exe"
         } else {
             "mini-python"
         };
         fs::write(host_dir.join("bin").join(mini_python), "")?;
-        fs::write(
-            host_dir
-                .join("sys")
-                .join("lib")
-                .join(format!("libpython{}.so", python_version)),
-            "",
-        )?;
+
+        // Create platform-specific library structure
+        #[cfg(unix)]
+        {
+            fs::create_dir_all(host_dir.join("sys").join("lib"))?;
+            fs::write(
+                host_dir
+                    .join("sys")
+                    .join("lib")
+                    .join(format!("libpython{}.so", python_version)),
+                "",
+            )?;
+        }
+
+        #[cfg(windows)]
+        {
+            fs::write(
+                host_dir
+                    .join("bin")
+                    .join(format!("python{}.dll", python_version)),
+                "",
+            )?;
+        }
 
         Ok(())
     }
@@ -433,23 +694,19 @@ mod tests {
     }
 
     #[test]
-    fn test_multiple_libpython_files_error() -> Result<()> {
-        let temp_dir = TempDir::new()?;
-        let lib_dir = temp_dir.path();
-        fs::write(lib_dir.join("libpython3.9.so.1.0"), "")?;
-        fs::write(lib_dir.join("libpython3.10.so.1.0"), "")?;
-
-        let err = find_libpython_in_dir(lib_dir).unwrap_err();
-        assert!(err.to_string().contains("Multiple libpython files"));
+    fn test_detect_simics_major_version_from_base() -> Result<()> {
+        let base = PathBuf::from("/opt/simics/simics-7.38.0");
+        let major = detect_simics_major_version_from_base(&base)?;
+        assert_eq!(major, 7);
 
         Ok(())
     }
 
     #[test]
-    fn test_detect_simics_major_version_from_base() -> Result<()> {
-        let base = PathBuf::from("/opt/simics/simics-7.38.0");
+    fn test_detect_simics_major_version_from_base_v6() -> Result<()> {
+        let base = PathBuf::from("/opt/simics/simics-6.0.191");
         let major = detect_simics_major_version_from_base(&base)?;
-        assert_eq!(major, 7);
+        assert_eq!(major, 6);
 
         Ok(())
     }
