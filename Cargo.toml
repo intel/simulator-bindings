@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 [workspace.package]
+version = "0.1.0"
 authors = ["Rowan Hart <rowan.hart@intel.com>"]
 # https://crates.io/category_slugs
 categories = [
@@ -30,6 +31,7 @@ members = [
     "simics-api-sys",
     "simics-macro",
     "simics-package",
+    "simics-python-utils",
     "simics-sign",
     "simics-test",
     "simics-build-utils",
@@ -42,6 +44,7 @@ default-members = [
     "simics-api-sys",
     "simics-macro",
     "simics-package",
+    "simics-python-utils",
     "simics-sign",
     "simics-test",
     "simics-build-utils",
@@ -57,6 +60,7 @@ simics-macro = { version = "0.1.1", path = "simics-macro" }
 simics = { version = "0.1.2", path = "simics" }
 simics-sign = { version = "0.1.1", path = "simics-sign" }
 simics-package = { version = "0.1.1", path = "simics-package" }
+simics-python-utils = { version = "0.1.0", path = "simics-python-utils" }
 simics-test = { version = "0.1.2", path = "simics-test" }
 simics-build-utils = { version = "0.1.1", path = "simics-build-utils" }
 

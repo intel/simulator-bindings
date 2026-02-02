@@ -1,0 +1,25 @@
+# Copyright (C) 2024 Intel Corporation
+# SPDX-License-Identifier: Apache-2.0
+
+[package]
+name = "simics-python-utils"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+description = "Python environment detection utilities for Intel® Simics® Simulator"
+documentation = "https://intel.github.io/simulator-bindings/crates/simics_python_utils/"
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+keywords.workspace = true
+categories.workspace = true
+publish.workspace = true
+
+[dependencies]
+anyhow = "1.0.88"
+ispm-wrapper = { path = "../ispm-wrapper" }
+versions = "6.3.2"
+
+[dev-dependencies]
+tempfile = "3.12.0"

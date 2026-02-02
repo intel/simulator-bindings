@@ -31,6 +31,7 @@ scraper = "0.20.0"
 walkdir = "2.5.0"
 
 ispm-wrapper = { workspace = true }
+simics-python-utils = { workspace = true }
 
 [dev-dependencies]
 anyhow = "1.0.88"

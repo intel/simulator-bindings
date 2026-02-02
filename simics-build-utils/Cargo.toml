@@ -27,3 +27,4 @@ versions = { version = "6.2.0", features = ["serde"] }
 
 ispm-wrapper = { workspace = true }
 simics-api-sys = { workspace = true }
+simics-python-utils = { workspace = true }

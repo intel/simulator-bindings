@@ -1,5 +1,8 @@
 #!/usr/bin/env -S cargo +nightly -Z script
 ---
+[package]
+edition = "2024"
+
 [dependencies]
 anyhow = "*"
 bindgen = "*"
@@ -8,6 +11,7 @@ futures = "*"
 prettyplease = "*"
 quote = "*"
 scraper = "*"
+simics-python-utils = { path = "../simics-python-utils" }
 syn = { version = "*", features = ["full"] }
 tokio = { version = "*", features = ["full"] }
 typed-builder = "*"
@@ -38,6 +42,7 @@ pub mod common {
         NonCopyUnionStyle,
     };
     use scraper::{Html, Selector};
+    use simics_python_utils::{discover_python_environment_from_base, HOST_DIRNAME};
     use std::{
         collections::HashSet,
         env::var,
@@ -86,29 +91,17 @@ pub mod common {
     /// simics base package. We actually use SIMICS_MODEL_BUILDER here, because we are indeed
     /// building a model.
     pub const SIMICS_BASE_ENV: &str = "SIMICS_BASE";
-    /// Name for the environment variable set by the SIMICS build system to the flag to
-    /// include e.g.  -I SIMICS_BASE/linux64/include/python3.9/
-    pub const PYTHON3_INCLUDE_ENV: &str = "PYTHON3_INCLUDE";
     /// Name for the ldflags environment variable, which will point to
     /// Name for the environment variable by the SIMICS build system to the path to the
     /// simics include directory e.g.  SIMICS_BASE/src/include/
     pub const INCLUDE_PATHS_ENV: &str = "INCLUDE_PATHS";
 
-    /// Name for the environment variable set by the SIMICS build system to the libpython3.so library
-    pub const PYTHON3_LDFLAGS_ENV: &str = "PYTHON3_LDFLAGS";
     /// Name for the LDFLAGS environment variable set by the SIMICS build system containing
     /// the link search path for the libsimics library, among other flags. e.g. -LPATH -z noexecstack
     pub const LDFLAGS_ENV: &str = "LDFLAGS";
     /// Name for the environment variable containing shared library link flags for simics common and
     /// vtutils
     pub const LIBS_ENV: &str = "LIBS";
-
-    #[cfg(not(windows))]
-    /// The name of the binary/library/object subdirectory on linux systems
-    pub const HOST_DIRNAME: &str = "linux64";
-    #[cfg(windows)]
-    /// The name of the binary/library/object subdirectory on windows systems
-    pub const HOST_DIRNAME: &str = "win64";
 
     /// The path in SIMICS_BASE/HOST_TYPE/ of the HTML file containing HAP documentation required
     /// for high level codegen of builtin HAPs
@@ -449,20 +442,11 @@ pub mod common {
                 }
             };
 
+            let python_env = discover_python_environment_from_base(base_dir_path.as_ref())?;
+
             let bindings =
                 Builder::default()
-                    .clang_arg(var(PYTHON3_INCLUDE_ENV).or_else(|e| {
-                        println!("cargo:warning=No environment variable {PYTHON3_INCLUDE_ENV} set. Using default include paths: {e}");
-                        subdir(base_dir_path
-                            .as_ref()
-                            .join(HOST_DIRNAME)
-                            .join("include"))
-                            .and_then(|p| {
-                                p.to_str()
-                                .map(|s| format!("-I{}", s))
-                                .ok_or_else(|| anyhow!("Could not convert path to string"))
-                            })
-                    })?)
+                    .clang_arg(&python_env.include_flag)
                     .clang_arg(format!("-I{}", &wrapper_include_path))
                     .clang_arg("-fretain-comments-from-system-headers")
                     .clang_arg("-fparse-all-comments")
@@ -732,25 +716,8 @@ pub mod common {
             base_dir_path.display()
         );
 
-        let libpython_path =
-        PathBuf::from(var(PYTHON3_LDFLAGS_ENV).map_err(|e| {
-            anyhow!("No environment variable {PYTHON3_LDFLAGS_ENV} found: {e}")
-        }).and_then(|v| if v.is_empty() { bail!("Environment variable {PYTHON3_LDFLAGS_ENV} is empty") } else { Ok(v) }).or_else(|e| {
-            println!("cargo:warning=No environment variable {INCLUDE_PATHS_ENV} set. Using default include paths: {e}");
-            base_dir_path
-                .join(HOST_DIRNAME)
-                .join("sys")
-                .join("lib")
-                .join("libpython3.so")
-                .to_str()
-                .map(|s| s.to_string())
-                .ok_or_else(|| anyhow!("Could not convert path to string"))
-        })?);
-
-        let libpython_dir = libpython_path
-            .parent()
-            .ok_or_else(|| anyhow!("libpython path {} has no parent", libpython_path.display()))?
-            .to_path_buf();
+        let python_env = discover_python_environment_from_base(&base_dir_path)?;
+        let libpython_dir = python_env.lib_dir.clone();
 
         let link_search_paths = var(LDFLAGS_ENV)
         .or_else(|e| {

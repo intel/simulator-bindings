@@ -20,6 +20,7 @@ pub mod common {
     };
     use ispm_wrapper::ispm::{self, GlobalOptions};
     use scraper::{Html, Selector};
+    use simics_python_utils::discover_python_environment_from_base;
     use std::{
         collections::HashSet,
         env::var,
@@ -255,19 +256,18 @@ pub mod common {
                     )
                 })?)?);
 
-            let haps_selector = Selector::parse(r#"article"#).unwrap();
-            let haps_id_selector = Selector::parse(r#"h2"#).unwrap();
-            let section_selector = Selector::parse(r#"section"#).unwrap();
+            // only retrieve direct h2 children (skipping those under <section> element below)
+            let haps_id_selector = Selector::parse(r#"article > h2"#).unwrap();
+            let section_selector = Selector::parse(r#"article > section"#).unwrap();
             let hap_code_selector = Selector::parse(r#"pre"#).unwrap();
             let hap_description_selector = Selector::parse(r#"h3"#).unwrap();
             let hap_index_selector = Selector::parse(r#"code"#).unwrap();
 
-            let haps_article = hap_document.select(&haps_selector).next().unwrap();
-            let haps_names = haps_article
+            let haps_names = hap_document
                 .select(&haps_id_selector)
                 .filter_map(|h| h.value().id())
                 .collect::<Vec<_>>();
-            let haps_sections = haps_article.select(&section_selector).collect::<Vec<_>>();
+            let haps_sections = hap_document.select(&section_selector).collect::<Vec<_>>();
             let haps_code_indices_descriptions = haps_sections
                 .iter()
                 .map(|s| {
@@ -448,16 +448,12 @@ pub mod common {
                 }
             };
 
+            // Discover Python environment using unified detection
+            let python_env = discover_python_environment_from_base(base_dir_path.as_ref())?;
+            println!("cargo:warning=Using Python environment: {}", python_env);
+
             let bindings = Builder::default()
-                .clang_arg(
-                    subdir(base_dir_path.as_ref().join(HOST_DIRNAME).join("include")).and_then(
-                        |p| {
-                            p.to_str()
-                                .map(|s| format!("-I{}", s))
-                                .ok_or_else(|| anyhow!("Could not convert path to string"))
-                        },
-                    )?,
-                )
+                .clang_arg(&python_env.include_flag)
                 .clang_arg(format!("-I{}", &wrapper_include_path))
                 .clang_arg("-fretain-comments-from-system-headers")
                 .clang_arg("-fparse-all-comments")
@@ -736,11 +732,7 @@ pub mod common {
     }
 
     pub fn emit_link_info() -> Result<()> {
-        #[cfg(unix)]
-        const HOST_DIRNAME: &str = "linux64";
-
-        #[cfg(not(unix))]
-        const HOST_DIRNAME: &'static str = "win64";
+        use crate::common::HOST_DIRNAME;
 
         let base_dir_path = if let Ok(simics_base) = var(SIMICS_BASE_ENV) {
             PathBuf::from(simics_base)
@@ -774,36 +766,11 @@ pub mod common {
 
             let libvtutils = bin_dir.join("libvtutils.so").canonicalize()?;
 
-            let sys_lib_dir = base_dir_path
-                .join(HOST_DIRNAME)
-                .join("sys")
-                .join("lib")
-                .canonicalize()?;
-
-            let libpython = sys_lib_dir.join(
-                read_dir(&sys_lib_dir)?
-                    .filter_map(|p| p.ok())
-                    .filter(|p| p.path().is_file())
-                    .filter(|p| {
-                        let path = p.path();
-
-                        let Some(file_name) = path.file_name() else {
-                            return false;
-                        };
-
-                        let Some(file_name) = file_name.to_str() else {
-                            return false;
-                        };
-
-                        file_name.starts_with("libpython")
-                            && file_name.contains(".so")
-                            && file_name != "libpython3.so"
-                    })
-                    .map(|p| p.path())
-                    .next()
-                    .ok_or_else(|| {
-                        anyhow!("No libpythonX.XX.so.X.X found in {}", sys_lib_dir.display())
-                    })?,
+            // Discover Python environment using unified detection
+            let python_env = discover_python_environment_from_base(&base_dir_path)?;
+            println!(
+                "cargo:warning=Using Python environment for linking: {}",
+                python_env
             );
 
             println!(
@@ -827,11 +794,7 @@ pub mod common {
             );
             println!(
                 "cargo:rustc-link-lib=dylib:+verbatim={}",
-                libpython
-                    .file_name()
-                    .ok_or_else(|| anyhow!("No file name found for {}", libpython.display()))?
-                    .to_str()
-                    .ok_or_else(|| anyhow!("Could not convert path to string"))?
+                python_env.lib_filename()?
             );
             println!(
                 "cargo:rustc-link-search=native={}",
@@ -841,7 +804,8 @@ pub mod common {
             );
             println!(
                 "cargo:rustc-link-search=native={}",
-                sys_lib_dir
+                python_env
+                    .lib_dir
                     .to_str()
                     .ok_or_else(|| anyhow!("Could not convert path to string"))?
             );
@@ -849,7 +813,8 @@ pub mod common {
                 bin_dir
                     .to_str()
                     .ok_or_else(|| anyhow!("Could not convert path to string"))?,
-                sys_lib_dir
+                python_env
+                    .lib_dir
                     .to_str()
                     .ok_or_else(|| anyhow!("Could not convert path to string"))?,
             ]
@@ -1070,6 +1035,24 @@ fn main() -> Result<()> {
 //     -s ~/simics/simics-7.18.0 \
 //     -s ~/simics/simics-7.19.0 \
 //     -s ~/simics/simics-7.20.0 \
+//     -s ~/simics/simics-7.21.0 \
+//     -s ~/simics/simics-7.22.0 \
+//     -s ~/simics/simics-7.23.0 \
+//     -s ~/simics/simics-7.24.0 \
+//     -s ~/simics/simics-7.25.0 \
+//     -s ~/simics/simics-7.26.0 \
+//     -s ~/simics/simics-7.27.0 \
+//     -s ~/simics/simics-7.28.0 \
+//     -s ~/simics/simics-7.29.0 \
+//     -s ~/simics/simics-7.30.0 \
+//     -s ~/simics/simics-7.31.0 \
+//     -s ~/simics/simics-7.32.0 \
+//     -s ~/simics/simics-7.33.0 \
+//     -s ~/simics/simics-7.34.0 \
+//     -s ~/simics/simics-7.35.0 \
+//     -s ~/simics/simics-7.36.0 \
+//     -s ~/simics/simics-7.37.0 \
+//     -s ~/simics/simics-7.38.0 \
 //     -o simics-api-sys/simics_api_items.rs
 // ```
 //
