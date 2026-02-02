@@ -10,7 +10,7 @@
 use std::env::home_dir;
 // NOTE: Use of deprecated home_dir is ok because the "incorrect" windows behavior is actually
 // correct for SIMICS' use case.
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use command_ext::CommandExtCheck;
 use std::{path::PathBuf, process::Command};
 
@@ -24,6 +24,8 @@ pub const ISPM_NAME: &str = "ispm";
 pub const ISPM_NAME: &str = "ispm.exe";
 /// The flag to use to run ISPM in non-interactive mode
 pub const NON_INTERACTIVE_FLAG: &str = "--non-interactive";
+/// Error message when ispm command fails to run
+const ISPM_NOT_FOUND_ERROR: &str = "Failed to run ispm. Ensure ispm is installed and in PATH, or set SIMICS_BASE environment variable.";
 
 /// Minimal implementation of internal ISPM functionality to use it externally
 pub struct Internal;
@@ -65,10 +67,14 @@ impl Internal {
     pub fn is_internal() -> Result<bool> {
         const IS_INTERNAL_MSG: &str = "This is an Intel internal release";
 
-        Ok(
-            String::from_utf8(Command::new(ISPM_NAME).arg("help").check()?.stdout)?
-                .contains(IS_INTERNAL_MSG),
-        )
+        Ok(String::from_utf8(
+            Command::new(ISPM_NAME)
+                .arg("help")
+                .check()
+                .context(ISPM_NOT_FOUND_ERROR)?
+                .stdout,
+        )?
+        .contains(IS_INTERNAL_MSG))
     }
 }
 
@@ -191,9 +197,9 @@ pub mod ispm {
     pub mod packages {
         use crate::{
             data::{Packages, ProjectPackage},
-            ToArgs, ISPM_NAME, NON_INTERACTIVE_FLAG,
+            ToArgs, ISPM_NAME, ISPM_NOT_FOUND_ERROR, NON_INTERACTIVE_FLAG,
         };
-        use anyhow::Result;
+        use anyhow::{Context, Result};
         use command_ext::CommandExtCheck;
         use serde_json::from_slice;
         use std::{collections::HashSet, iter::repeat, path::PathBuf, process::Command};
@@ -216,7 +222,8 @@ pub mod ispm {
                     .arg("--list-installed")
                     .arg("--json")
                     .args(options.to_args())
-                    .check()?
+                    .check()
+                    .context(ISPM_NOT_FOUND_ERROR)?
                     .stdout,
             )?;
 
@@ -265,7 +272,8 @@ pub mod ispm {
                 .arg(PACKAGES_SUBCOMMAND)
                 .args(install_options.to_args())
                 .arg(NON_INTERACTIVE_FLAG)
-                .check()?;
+                .check()
+                .context(ISPM_NOT_FOUND_ERROR)?;
             Ok(())
         }
 
@@ -295,7 +303,8 @@ pub mod ispm {
                 .arg(PACKAGES_SUBCOMMAND)
                 .args(uninstall_options.to_args())
                 .arg(NON_INTERACTIVE_FLAG)
-                .check()?;
+                .check()
+                .context(ISPM_NOT_FOUND_ERROR)?;
             Ok(())
         }
     }
@@ -304,9 +313,9 @@ pub mod ispm {
     pub mod projects {
         use crate::{
             data::{ProjectPackage, Projects},
-            ToArgs, ISPM_NAME, NON_INTERACTIVE_FLAG,
+            ToArgs, ISPM_NAME, ISPM_NOT_FOUND_ERROR, NON_INTERACTIVE_FLAG,
         };
-        use anyhow::{anyhow, Result};
+        use anyhow::{anyhow, Context, Result};
         use command_ext::CommandExtCheck;
         use serde_json::from_slice;
         use std::{collections::HashSet, iter::once, path::Path, process::Command};
@@ -359,7 +368,10 @@ pub mod ispm {
                 CREATE_PROJECT_FLAG.to_string(),
             ];
             args.extend(create_options.to_args());
-            Command::new(ISPM_NAME).args(args).check()?;
+            Command::new(ISPM_NAME)
+                .args(args)
+                .check()
+                .context(ISPM_NOT_FOUND_ERROR)?;
 
             Ok(())
         }
@@ -377,7 +389,8 @@ pub mod ispm {
                     .arg("--list")
                     .arg("--json")
                     .args(options.to_args())
-                    .check()?
+                    .check()
+                    .context(ISPM_NOT_FOUND_ERROR)?
                     .stdout,
             )?)
         }
@@ -385,8 +398,8 @@ pub mod ispm {
 
     /// ISPM commands for platform management
     pub mod platforms {
-        use crate::{data::Platforms, ISPM_NAME, NON_INTERACTIVE_FLAG};
-        use anyhow::Result;
+        use crate::{data::Platforms, ISPM_NAME, ISPM_NOT_FOUND_ERROR, NON_INTERACTIVE_FLAG};
+        use anyhow::{Context, Result};
         use command_ext::CommandExtCheck;
         use serde_json::from_slice;
         use std::process::Command;
@@ -405,7 +418,8 @@ pub mod ispm {
                     // PIPE_BUF. For now, we mitigate this by passing `--list-installed` only.
                     .arg("--list")
                     .arg("--json")
-                    .check()?
+                    .check()
+                    .context(ISPM_NOT_FOUND_ERROR)?
                     .stdout,
             )?)
         }
@@ -413,8 +427,8 @@ pub mod ispm {
 
     /// ISPM commands for settings management
     pub mod settings {
-        use crate::{data::Settings, ISPM_NAME, NON_INTERACTIVE_FLAG};
-        use anyhow::Result;
+        use crate::{data::Settings, ISPM_NAME, ISPM_NOT_FOUND_ERROR, NON_INTERACTIVE_FLAG};
+        use anyhow::{Context, Result};
         use command_ext::CommandExtCheck;
         use serde_json::from_slice;
         use std::process::Command;
@@ -428,7 +442,8 @@ pub mod ispm {
                     .arg(SETTINGS_SUBCOMMAND)
                     .arg(NON_INTERACTIVE_FLAG)
                     .arg("--json")
-                    .check()?
+                    .check()
+                    .context(ISPM_NOT_FOUND_ERROR)?
                     .stdout,
             )
             .or_else(|_| {
