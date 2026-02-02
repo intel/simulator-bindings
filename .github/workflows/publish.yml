@@ -34,25 +34,44 @@ jobs:
 
       - name: Publish
         run: |
-          cargo publish --no-verify --package ispm-wrapper
-          sleep 120
-          cargo publish --no-verify --package simics-python-utils
-          sleep 120
-          cargo publish --no-verify --package simics-package
-          sleep 120
-          cargo publish --no-verify --package simics-sign
-          sleep 120
-          cargo publish --no-verify --package cargo-simics-build
-          sleep 120
-          cargo publish --no-verify --package simics-api-sys
-          sleep 120
-          cargo publish --no-verify --package simics-build-utils
-          sleep 120
-          cargo publish --no-verify --package simics-macro
-          sleep 120
-          cargo publish --no-verify --package simics
-          sleep 120
-          cargo publish --no-verify --package simics-test
+          set -euo pipefail
+
+          publish_crate() {
+            local crate="$1"
+            local out
+            echo "Publishing ${crate}..."
+
+            set +e
+            out="$(cargo publish --no-verify --package "${crate}" 2>&1)"
+            status=$?
+            set -e
+
+            echo "${out}"
+
+            if [ "${status}" -eq 0 ]; then
+              sleep 120
+              return 0
+            fi
+
+            if echo "${out}" | grep -Eq "already uploaded|already exists on crates\\.io index"; then
+              echo "Skipping ${crate}: version already published."
+              return 0
+            fi
+
+            echo "Failed publishing ${crate}."
+            return "${status}"
+          }
+
+          publish_crate ispm-wrapper
+          publish_crate simics-python-utils
+          publish_crate simics-package
+          publish_crate simics-sign
+          publish_crate cargo-simics-build
+          publish_crate simics-api-sys
+          publish_crate simics-build-utils
+          publish_crate simics-macro
+          publish_crate simics
+          publish_crate simics-test
 
       - name: Create GitHub Release
         run: gh release create ${{ github.ref_name }} --generate-notes
