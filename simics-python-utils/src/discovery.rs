@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{environment::PackageSource, PythonEnvironment, PythonVersion};
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Result};
 use ispm_wrapper::{
     data::InstalledPackage,
     ispm::{self, GlobalOptions},
@@ -254,7 +254,10 @@ fn find_python_subdir(include_dir: &Path) -> Result<PathBuf> {
             "No python* subdirectory found in {}",
             include_dir.display()
         )),
-        1 => Ok(python_dirs.into_iter().next().unwrap()),
+        1 => Ok(python_dirs
+            .into_iter()
+            .next()
+            .expect("exactly one element guaranteed by match arm")),
         _ => Err(anyhow!(
             "Multiple python* subdirectories found in {}, expected exactly one",
             include_dir.display()
@@ -334,7 +337,10 @@ fn find_libpython_in_dir(lib_dir: &Path) -> Result<(PathBuf, PathBuf)> {
             lib_dir.display()
         )),
         1 => {
-            let lib_path = libpython_files.into_iter().next().unwrap();
+            let lib_path = libpython_files
+                .into_iter()
+                .next()
+                .expect("exactly one element guaranteed by match arm");
             Ok((lib_dir.to_path_buf(), lib_path))
         }
         _ => Err(anyhow!(
