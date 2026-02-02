@@ -3,7 +3,7 @@
 
 [package]
 name = "simics"
-version = "0.1.2"
+version = "0.2.1"
 authors = ["Rowan Hart <rowan.hart@intel.com>"]
 edition = "2021"
 description = "Intel® Simics® Simulator bindings in high level, idiomatic Rust"
