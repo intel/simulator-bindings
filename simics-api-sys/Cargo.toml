@@ -3,7 +3,7 @@
 
 [package]
 name = "simics-api-sys"
-version = "0.1.2"
+version = "0.2.1"
 authors = ["Rowan Hart <rowan.hart@intel.com>"]
 edition = "2021"
 description = "Automatically generated Intel® Simics® Simulator FFI bindings"
