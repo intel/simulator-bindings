@@ -3,7 +3,7 @@
 
 [package]
 name = "simics-macro"
-version = "0.2.2"
+version = "0.2.3"
 authors = ["Rowan Hart <rowan.hart@intel.com>"]
 edition = "2021"
 description = "Proc macros for building Intel® Simics® Simulator modules"

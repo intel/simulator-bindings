@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 [workspace.package]
-version = "0.2.2"
+version = "0.2.3"
 authors = ["Rowan Hart <rowan.hart@intel.com>"]
 # https://crates.io/category_slugs
 categories = [
@@ -53,16 +53,16 @@ default-members = [
 exclude = []
 
 [workspace.dependencies]
-cargo-simics-build = { version = "0.2.2", path = "cargo-simics-build" }
-ispm-wrapper = { version = "0.2.2", path = "ispm-wrapper" }
-simics-api-sys = { version = "0.2.2", path = "simics-api-sys" }
-simics-macro = { version = "0.2.2", path = "simics-macro" }
-simics = { version = "0.2.2", path = "simics" }
-simics-sign = { version = "0.2.2", path = "simics-sign" }
-simics-package = { version = "0.2.2", path = "simics-package" }
-simics-python-utils = { version = "0.2.2", path = "simics-python-utils" }
-simics-test = { version = "0.2.2", path = "simics-test" }
-simics-build-utils = { version = "0.2.2", path = "simics-build-utils" }
+cargo-simics-build = { version = "0.2.3", path = "cargo-simics-build" }
+ispm-wrapper = { version = "0.2.3", path = "ispm-wrapper" }
+simics-api-sys = { version = "0.2.3", path = "simics-api-sys" }
+simics-macro = { version = "0.2.3", path = "simics-macro" }
+simics = { version = "0.2.3", path = "simics" }
+simics-sign = { version = "0.2.3", path = "simics-sign" }
+simics-package = { version = "0.2.3", path = "simics-package" }
+simics-python-utils = { version = "0.2.3", path = "simics-python-utils" }
+simics-test = { version = "0.2.3", path = "simics-test" }
+simics-build-utils = { version = "0.2.3", path = "simics-build-utils" }
 
 [profile.dev]
 # NOTE: rparth set to true to allow cargo test/cargo run to find libsimics-common,
