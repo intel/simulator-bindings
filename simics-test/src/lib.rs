@@ -514,7 +514,9 @@ impl TestEnv {
                     .build(),
             )
             .or_else(|e| {
-                if e.to_string().contains("could not be found to uninstall") {
+                if e.chain()
+                    .any(|c| c.to_string().contains("could not be found to uninstall"))
+                {
                     Ok(())
                 } else {
                     Err(e)
