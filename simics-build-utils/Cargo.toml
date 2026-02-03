@@ -3,7 +3,7 @@
 
 [package]
 name = "simics-build-utils"
-version = "0.2.2"
+version = "0.2.3"
 authors = ["Rowan Hart <rowan.hart@intel.com>"]
 edition = "2021"
 description = "Intel® Simics® Simulator build and linking utilities"
