@@ -216,7 +216,7 @@ pub fn emit_link_info() -> Result<()> {
 
     #[cfg(windows)]
     {
-        // Link `libsimics-common.so`, `libvtutils.so`, and `libpythonX.XX.so.X.X` if they exist
+        // Link `libsimics-common.dll`, `libvtutils.dll`, and `pythonX.XX.dll`
         let bin_dir = base_dir_path
             .join(HOST_DIRNAME)
             .join("bin")
@@ -248,58 +248,11 @@ pub fn emit_link_info() -> Result<()> {
             )
         })?;
 
-        let python_include_dir = subdir(base_dir_path.join(HOST_DIRNAME).join("include"))?;
-        // .ok_or_else(|| anyhow!("Did not get any subdirectory of {:?}", base_dir_path.join(HOST_DIRNAME).join("include")))?;
-
-        let python_dir_name = python_include_dir
-            .components()
-            .last()
-            .ok_or_else(|| {
-                anyhow!(
-                    "Did not get any last component of path {:?}",
-                    python_include_dir
-                )
-            })?
-            .as_os_str()
-            .to_str()
-            .ok_or_else(|| anyhow!("Could not convert python include dir name to string"))?
-            .to_string();
-
-        let sys_lib_dir = base_dir_path
-            .join(HOST_DIRNAME)
-            .join("lib")
-            .join(python_dir_name)
-            .canonicalize()
-            .map_err(|e| {
-                anyhow!(
-                    "Could not find sys lib dir {:?}: {}",
-                    base_dir_path.join(HOST_DIRNAME).join("sys").join("lib"),
-                    e
-                )
-            })?;
-
-        let libpython = sys_lib_dir.join(
-            read_dir(&sys_lib_dir)?
-                .filter_map(|p| p.ok())
-                .filter(|p| p.path().is_file())
-                .filter(|p| {
-                    let path = p.path();
-
-                    let Some(file_name) = path.file_name() else {
-                        return false;
-                    };
-
-                    let Some(file_name) = file_name.to_str() else {
-                        return false;
-                    };
-
-                    file_name.starts_with("python")
-                        && file_name.ends_with(".dll")
-                        && file_name != "python3.dll"
-                })
-                .map(|p| p.path())
-                .next()
-                .ok_or_else(|| anyhow!("No pythonX.XX.dll found in {}", sys_lib_dir.display()))?,
+        // Discover Python environment using unified detection
+        let python_env = discover_python_environment_from_base(&base_dir_path)?;
+        println!(
+            "cargo:warning=Using Python environment for linking: {}",
+            python_env
         );
 
         println!(
@@ -320,11 +273,7 @@ pub fn emit_link_info() -> Result<()> {
         );
         println!(
             "cargo:rustc-link-lib=dylib:+verbatim={}",
-            libpython
-                .file_name()
-                .ok_or_else(|| anyhow!("No file name found for {}", libpython.display()))?
-                .to_str()
-                .ok_or_else(|| anyhow!("Could not convert path to string"))?
+            python_env.lib_filename()?
         );
         println!(
             "cargo:rustc-link-search=native={}",
@@ -334,7 +283,8 @@ pub fn emit_link_info() -> Result<()> {
         );
         println!(
             "cargo:rustc-link-search=native={}",
-            sys_lib_dir
+            python_env
+                .lib_dir
                 .to_str()
                 .ok_or_else(|| anyhow!("Could not convert path to string"))?
         );
@@ -342,7 +292,8 @@ pub fn emit_link_info() -> Result<()> {
             bin_dir
                 .to_str()
                 .ok_or_else(|| anyhow!("Could not convert path to string"))?,
-            sys_lib_dir
+            python_env
+                .lib_dir
                 .to_str()
                 .ok_or_else(|| anyhow!("Could not convert path to string"))?,
         ]
