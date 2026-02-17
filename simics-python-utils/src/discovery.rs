@@ -390,14 +390,14 @@ fn find_python_subdir(include_dir: &Path) -> Result<PathBuf> {
         .filter(|path| {
             path.file_name()
                 .and_then(|name| name.to_str())
-                .map(|name| name.starts_with("python"))
+                .map(|name| name.starts_with("python3."))
                 .unwrap_or(false)
         })
         .collect();
 
     match python_dirs.len() {
         0 => Err(anyhow!(
-            "No python* subdirectory found in {}",
+            "No python3.* subdirectory found in {}",
             include_dir.display()
         )),
         1 => Ok(python_dirs
@@ -405,7 +405,7 @@ fn find_python_subdir(include_dir: &Path) -> Result<PathBuf> {
             .next()
             .expect("exactly one element guaranteed by match arm")),
         _ => Err(anyhow!(
-            "Multiple python* subdirectories found in {}, expected exactly one",
+            "Multiple python3.* subdirectories found in {}, expected exactly one",
             include_dir.display()
         )),
     }
@@ -705,7 +705,9 @@ mod tests {
         fs::create_dir_all(include_dir.join("python3.10"))?;
 
         let err = find_python_subdir(&include_dir).unwrap_err();
-        assert!(err.to_string().contains("Multiple python* subdirectories"));
+        assert!(err
+            .to_string()
+            .contains("Multiple python3.* subdirectories"));
 
         Ok(())
     }
