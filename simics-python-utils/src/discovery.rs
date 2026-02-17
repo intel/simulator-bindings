@@ -247,34 +247,34 @@ pub fn discover_python_environment_from_base<P: AsRef<Path>>(
 ) -> Result<PythonEnvironment> {
     let simics_base = simics_base.as_ref();
 
-    // Try traditional paths first (Simics 1000)
-    let traditional_err = match try_traditional_paths(simics_base) {
-        Ok(env) => return Ok(env.with_source(PackageSource::Traditional)),
-        Err(err) => err.context("Traditional discovery failed"),
+    // Try bundled paths first (Simics base package 1000)
+    let bundled_err = match try_bundled_paths(simics_base) {
+        Ok(env) => return Ok(env.with_source(PackageSource::Bundled)),
+        Err(err) => err.context("Bundled discovery failed"),
     };
 
-    // Try dynamic discovery of separate Python package (Simics 1033)
-    let dynamic_err = match try_dynamic_python_package_discovery(simics_base) {
+    // Try separate Python package discovery (Simics 1033)
+    let separate_err = match try_separate_python_package_discovery(simics_base) {
         Ok(env) => return Ok(env.with_source(PackageSource::SeparatePackage)),
-        Err(err) => err.context("Dynamic discovery failed"),
+        Err(err) => err.context("Separate package discovery failed"),
     };
 
     Err(anyhow!(
-        "Python environment not found in traditional location ({}) or through dynamic package discovery\nTraditional error: {:#}\nDynamic error: {:#}",
+        "Python environment not found in bundled location ({}) or through separate package discovery\nBundled error: {:#}\nSeparate error: {:#}",
         simics_base.join(HOST_DIRNAME).display(),
-        traditional_err,
-        dynamic_err
+        bundled_err,
+        separate_err
     ))
 }
 
-/// Try to discover Python environment from traditional Simics base package paths
-fn try_traditional_paths(simics_base: &Path) -> Result<PythonEnvironment> {
+/// Try to discover Python environment from bundled Simics base package paths
+fn try_bundled_paths(simics_base: &Path) -> Result<PythonEnvironment> {
     let base_path = simics_base.join(HOST_DIRNAME);
     discover_from_base_path(base_path)
 }
 
-/// Try to discover Python environment using dynamic ISPM-based package discovery
-fn try_dynamic_python_package_discovery(simics_base: &Path) -> Result<PythonEnvironment> {
+/// Try to discover Python environment using separate ISPM-based package discovery
+fn try_separate_python_package_discovery(simics_base: &Path) -> Result<PythonEnvironment> {
     // Detect the Simics major version using multiple strategies
     let major_version = detect_simics_major_version_from_base(simics_base)?;
 
@@ -282,7 +282,7 @@ fn try_dynamic_python_package_discovery(simics_base: &Path) -> Result<PythonEnvi
     let python_package = find_latest_python_package(major_version)?;
 
     println!(
-        "cargo:warning=Using dynamically discovered Python package: {} (version {})",
+        "cargo:warning=Using separate Python package: {} (version {})",
         python_package.name, python_package.version
     );
 
@@ -307,7 +307,7 @@ fn discover_from_base_path(base_path: PathBuf) -> Result<PythonEnvironment> {
     // SIMICS_BASE/HOST_DIRNAME/include/python3.X
     let include_dir = find_python_include(&base_path)?;
     // Unix: SIMICS_BASE/HOST_DIRNAME/sys/lib/libpython3.X.so.Y.Z
-    // Windows: SIMICS_BASE/HOST_DIRNAME/bin/python3.X.dll
+    // Windows: SIMICS_BASE/HOST_DIRNAME/lib/python3.X/python3.X.dll
     let (lib_dir, lib_path) = find_python_library(&base_path)?;
     // Windows: directory containing python3.lib import library
     let import_lib_dir = find_import_lib_dir(&base_path);
@@ -320,7 +320,7 @@ fn discover_from_base_path(base_path: PathBuf) -> Result<PythonEnvironment> {
         lib_path,
         import_lib_dir,
         version,
-        PackageSource::Traditional, // Will be updated by caller
+        PackageSource::Bundled, // Default; updated by caller
     );
 
     // Validate the environment before returning
@@ -415,15 +415,15 @@ fn find_python_subdir(include_dir: &Path) -> Result<PathBuf> {
 }
 
 /// Find the directory containing the python3.lib import library (Windows).
-/// Tries `bin/py3/` first (separate package layout in Simics 7.70.0+),
-/// then falls back to `bin/` (traditional layout).
-/// On Unix this returns `lib_dir` equivalent (unused in practice).
+/// Tries `bin/py3/` first (separate package layout in Simics 7.28.0+),
+/// then falls back to `bin/` (bundled layout).
+/// On Unix this returns `lib_dir` equivalent.
 fn find_import_lib_dir(base_path: &Path) -> PathBuf {
     let py3_dir = base_path.join("bin").join("py3");
     if py3_dir.join("python3.lib").exists() {
         return py3_dir;
     }
-    // Fall back to traditional bin/ location
+    // Fall back to bundled bin/ location
     base_path.join("bin")
 }
 
@@ -689,7 +689,7 @@ mod tests {
 
         let env = discover_python_environment_from_base(base_path)?;
 
-        assert_eq!(env.package_source, PackageSource::Traditional);
+        assert_eq!(env.package_source, PackageSource::Bundled);
         assert_eq!(env.version.major, 3);
         assert_eq!(env.version.minor, 9);
         assert!(env.mini_python.exists());

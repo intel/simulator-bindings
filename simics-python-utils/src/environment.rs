@@ -8,8 +8,8 @@ use std::path::PathBuf;
 /// Source of the Python environment
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PackageSource {
-    /// Found in traditional Simics base package (1000)
-    Traditional,
+    /// Found in bundled Simics base package (1000)
+    Bundled,
     /// Found in separate Simics Python package (1033), used in Simics 7.28.0+
     SeparatePackage,
 }
