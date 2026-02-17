@@ -8,8 +8,8 @@ use std::path::PathBuf;
 /// Source of the Python environment
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PackageSource {
-    /// Found in traditional Simics base package (1000)
-    Traditional,
+    /// Found in bundled Simics base package (1000)
+    Bundled,
     /// Found in separate Simics Python package (1033), used in Simics 7.28.0+
     SeparatePackage,
 }
@@ -27,6 +27,9 @@ pub struct PythonEnvironment {
     pub lib_dir: PathBuf,
     /// Full path to the specific libpython*.so file
     pub lib_path: PathBuf,
+    /// Directory containing python3.lib import library (Windows).
+    /// On Unix, this mirrors `lib_dir` and is unused.
+    pub import_lib_dir: PathBuf,
     /// Parsed Python version information
     pub version: PythonVersion,
     /// Source package where Python was found
@@ -40,6 +43,7 @@ impl PythonEnvironment {
         include_dir: PathBuf,
         lib_dir: PathBuf,
         lib_path: PathBuf,
+        import_lib_dir: PathBuf,
         version: PythonVersion,
         package_source: PackageSource,
     ) -> Self {
@@ -51,6 +55,7 @@ impl PythonEnvironment {
             include_flag,
             lib_dir,
             lib_path,
+            import_lib_dir,
             version,
             package_source,
         }
@@ -120,6 +125,23 @@ impl PythonEnvironment {
             ));
         }
 
+        #[cfg(windows)]
+        {
+            if !self.import_lib_dir.exists() {
+                return Err(anyhow!(
+                    "Python import library directory not found: {}",
+                    self.import_lib_dir.display()
+                ));
+            }
+
+            if !self.import_lib_dir.is_dir() {
+                return Err(anyhow!(
+                    "Python import library path is not a directory: {}",
+                    self.import_lib_dir.display()
+                ));
+            }
+        }
+
         Ok(())
     }
 
@@ -136,6 +158,11 @@ impl PythonEnvironment {
     /// Get the Py_LIMITED_API define for C compilation
     pub fn py_limited_api_define(&self) -> String {
         format!("-DPy_LIMITED_API={}", self.version.py_limited_api_hex())
+    }
+
+    /// Get the path to the python3.lib import library (Windows)
+    pub fn import_lib_path(&self) -> PathBuf {
+        self.import_lib_dir.join("python3.lib")
     }
 
     /// Get the library file name (without directory)
@@ -157,12 +184,13 @@ impl std::fmt::Display for PythonEnvironment {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "PythonEnvironment {{ version: {}, source: {:?}, mini_python: {}, include: {}, lib: {} }}",
+            "PythonEnvironment {{ version: {}, source: {:?}, mini_python: {}, include: {}, lib: {}, import_lib: {} }}",
             self.version,
             self.package_source,
             self.mini_python.display(),
             self.include_dir.display(),
-            self.lib_path.display()
+            self.lib_path.display(),
+            self.import_lib_dir.display()
         )
     }
 }

@@ -512,9 +512,6 @@ impl CInterface {
         #[cfg(windows)]
         const CDYLIB_SUFFIX: &str = "dll";
 
-        #[cfg(windows)]
-        const CSTATICLIB_SUFFIX: &str = "lib";
-
         let header_name = format!("{interface_name}-interface.h");
         let dml_name = format!("{interface_name}-interface.dml");
         let makefile_name = "Makefile";
@@ -634,12 +631,9 @@ impl CInterface {
         let libpython_path = python_env.lib_path.clone();
 
         #[cfg(windows)]
-        let libpython_path_static = var(PYTHON3_LDFLAGS_ENV).map(PathBuf::from).unwrap_or(
-            simics_base
-                .join(HOST_DIRNAME)
-                .join("bin")
-                .join(format!("python3.{CSTATICLIB_SUFFIX}")),
-        );
+        let libpython_path_static = var(PYTHON3_LDFLAGS_ENV)
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| python_env.import_lib_path());
 
         // GEN
         // /home/rhart/simics/simics-6.0.169/bin/mini-python \
@@ -1267,7 +1261,8 @@ impl CInterface {
             "-lsimics-common",
             "-lvtutils",
         ];
-        Command::new("g++")
+        let mut gpp_cmd = Command::new("g++");
+        gpp_cmd
             .arg("-shared")
             .arg(&exportmap_arg)
             .arg(interface_subdir.join(&pyiface_interface_wrappers_o))
@@ -1278,6 +1273,10 @@ impl CInterface {
             .arg("-Wl,--gc-sections")
             .arg("-L")
             .arg(simics_base.join(HOST_DIRNAME).join("bin"))
+            .arg("-L")
+            .arg(&python_env.import_lib_dir);
+
+        gpp_cmd
             .args(link_args)
             .arg(&libpython_path)
             .args(libs)
