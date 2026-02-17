@@ -3,7 +3,7 @@
 
 [package]
 name = "simics-sign"
-version = "0.2.3"
+version = "0.2.4"
 authors = ["Rowan Hart <rowan.hart@intel.com>"]
 edition = "2021"
 description = "Intel® Simics® Simulator module signing tools"
