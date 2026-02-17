@@ -309,6 +309,8 @@ fn discover_from_base_path(base_path: PathBuf) -> Result<PythonEnvironment> {
     // Unix: SIMICS_BASE/HOST_DIRNAME/sys/lib/libpython3.X.so.Y.Z
     // Windows: SIMICS_BASE/HOST_DIRNAME/bin/python3.X.dll
     let (lib_dir, lib_path) = find_python_library(&base_path)?;
+    // Windows: directory containing python3.lib import library
+    let import_lib_dir = find_import_lib_dir(&base_path);
     let version = PythonVersion::parse_from_include_dir(&include_dir)?;
 
     let env = PythonEnvironment::new(
@@ -316,6 +318,7 @@ fn discover_from_base_path(base_path: PathBuf) -> Result<PythonEnvironment> {
         include_dir,
         lib_dir,
         lib_path,
+        import_lib_dir,
         version,
         PackageSource::Traditional, // Will be updated by caller
     );
@@ -409,6 +412,19 @@ fn find_python_subdir(include_dir: &Path) -> Result<PathBuf> {
             include_dir.display()
         )),
     }
+}
+
+/// Find the directory containing the python3.lib import library (Windows).
+/// Tries `bin/py3/` first (separate package layout in Simics 7.70.0+),
+/// then falls back to `bin/` (traditional layout).
+/// On Unix this returns `lib_dir` equivalent (unused in practice).
+fn find_import_lib_dir(base_path: &Path) -> PathBuf {
+    let py3_dir = base_path.join("bin").join("py3");
+    if py3_dir.join("python3.lib").exists() {
+        return py3_dir;
+    }
+    // Fall back to traditional bin/ location
+    base_path.join("bin")
 }
 
 /// Find Python library directory and specific library file
