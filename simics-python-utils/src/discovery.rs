@@ -35,8 +35,11 @@ pub const PYTHON3_LDFLAGS_ENV: &str = "PYTHON3_LDFLAGS";
 #[derive(Debug, Clone)]
 struct PlatformConfig {
     /// Subdirectory components from base_path to library directory
-    /// Unix: ["sys", "lib"], Windows: ["bin"]
+    /// Unix: ["sys", "lib"], Windows: ["lib"]
     lib_subdir: &'static [&'static str],
+    /// Whether the lib directory contains a python3.X version subdirectory
+    /// Unix: false (libs directly in sys/lib/), Windows: true (libs in lib/python3.X/)
+    lib_has_version_subdir: bool,
     /// Prefix for Python library files (e.g., "libpython" or "python3")
     lib_prefix: &'static str,
     /// Extension for Python library files (e.g., ".so" or ".dll")
@@ -48,6 +51,7 @@ struct PlatformConfig {
 #[cfg(unix)]
 const PLATFORM_CONFIG: PlatformConfig = PlatformConfig {
     lib_subdir: &["sys", "lib"],
+    lib_has_version_subdir: false,
     lib_prefix: "libpython",
     lib_extension: ".so",
     generic_lib_name: "libpython3.so",
@@ -55,7 +59,8 @@ const PLATFORM_CONFIG: PlatformConfig = PlatformConfig {
 
 #[cfg(windows)]
 const PLATFORM_CONFIG: PlatformConfig = PlatformConfig {
-    lib_subdir: &["bin"],
+    lib_subdir: &["lib"],
+    lib_has_version_subdir: true,
     lib_prefix: "python3",
     lib_extension: ".dll",
     generic_lib_name: "python3.dll",
@@ -94,11 +99,16 @@ fn filter_python_libraries_with_config(files: &mut Vec<PathBuf>, config: &Platfo
 }
 
 /// Build library directory path from base path and config
-fn get_lib_dir(base_path: &Path, config: &PlatformConfig) -> PathBuf {
-    config
+fn get_lib_dir(base_path: &Path, config: &PlatformConfig) -> Result<PathBuf> {
+    let base = config
         .lib_subdir
         .iter()
-        .fold(base_path.to_path_buf(), |p, component| p.join(component))
+        .fold(base_path.to_path_buf(), |p, component| p.join(component));
+    if config.lib_has_version_subdir {
+        find_python_subdir(&base)
+    } else {
+        Ok(base)
+    }
 }
 
 /// Find Python library in a directory using the given config
@@ -415,7 +425,7 @@ fn find_python_library(base_path: &Path) -> Result<(PathBuf, PathBuf)> {
         }
     }
 
-    let lib_dir = get_lib_dir(base_path, &PLATFORM_CONFIG);
+    let lib_dir = get_lib_dir(base_path, &PLATFORM_CONFIG)?;
     find_libpython_in_dir_with_config(&lib_dir, &PLATFORM_CONFIG)
 }
 
@@ -432,13 +442,15 @@ mod tests {
     // Test configs - can test BOTH platforms on ANY platform
     const UNIX_CONFIG: PlatformConfig = PlatformConfig {
         lib_subdir: &["sys", "lib"],
+        lib_has_version_subdir: false,
         lib_prefix: "libpython",
         lib_extension: ".so",
         generic_lib_name: "libpython3.so",
     };
 
     const WINDOWS_CONFIG: PlatformConfig = PlatformConfig {
-        lib_subdir: &["bin"],
+        lib_subdir: &["lib"],
+        lib_has_version_subdir: true,
         lib_prefix: "python3",
         lib_extension: ".dll",
         generic_lib_name: "python3.dll",
@@ -467,17 +479,22 @@ mod tests {
     }
 
     #[test]
-    fn test_get_lib_dir_unix() {
+    fn test_get_lib_dir_unix() -> Result<()> {
         let base = PathBuf::from("/opt/simics/linux64");
-        let lib_dir = get_lib_dir(&base, &UNIX_CONFIG);
+        let lib_dir = get_lib_dir(&base, &UNIX_CONFIG)?;
         assert_eq!(lib_dir, PathBuf::from("/opt/simics/linux64/sys/lib"));
+        Ok(())
     }
 
     #[test]
-    fn test_get_lib_dir_windows() {
-        let base = PathBuf::from("/opt/simics/win64");
-        let lib_dir = get_lib_dir(&base, &WINDOWS_CONFIG);
-        assert_eq!(lib_dir, PathBuf::from("/opt/simics/win64/bin"));
+    fn test_get_lib_dir_windows() -> Result<()> {
+        let temp_dir = TempDir::new()?;
+        let lib_dir = temp_dir.path().join("lib").join("python3.10");
+        fs::create_dir_all(&lib_dir)?;
+
+        let result = get_lib_dir(temp_dir.path(), &WINDOWS_CONFIG)?;
+        assert_eq!(result, lib_dir);
+        Ok(())
     }
 
     #[test]
@@ -532,7 +549,7 @@ mod tests {
         fs::write(lib_dir.join("libpython3.9.so.1.0"), "")?;
 
         let base_path = temp_dir.path();
-        let actual_lib_dir = get_lib_dir(base_path, &UNIX_CONFIG);
+        let actual_lib_dir = get_lib_dir(base_path, &UNIX_CONFIG)?;
         let (found_dir, found_path) =
             find_libpython_in_dir_with_config(&actual_lib_dir, &UNIX_CONFIG)?;
 
@@ -544,17 +561,17 @@ mod tests {
     #[test]
     fn test_find_libpython_windows_structure() -> Result<()> {
         let temp_dir = TempDir::new()?;
-        let bin_dir = temp_dir.path().join("bin");
+        let bin_dir = temp_dir.path().join("lib").join("python3.10");
         fs::create_dir_all(&bin_dir)?;
-        fs::write(bin_dir.join("python3.10.dll"), "")?;
+        fs::write(bin_dir.join("python3.dll"), "")?;
 
         let base_path = temp_dir.path();
-        let actual_lib_dir = get_lib_dir(base_path, &WINDOWS_CONFIG);
+        let actual_lib_dir = get_lib_dir(base_path, &WINDOWS_CONFIG)?;
         let (found_dir, found_path) =
             find_libpython_in_dir_with_config(&actual_lib_dir, &WINDOWS_CONFIG)?;
 
         assert_eq!(found_dir, bin_dir);
-        assert!(found_path.to_string_lossy().contains("python3.10.dll"));
+        assert!(found_path.to_string_lossy().contains("python3.dll"));
         Ok(())
     }
 
