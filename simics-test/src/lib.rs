@@ -33,6 +33,33 @@ use walkdir::WalkDir;
 /// An environment variable which, if set, causes the entire test workspace to be cleaned up
 /// after the test
 pub const SIMICS_TEST_CLEANUP_EACH_ENV: &str = "SIMICS_TEST_CLEANUP_EACH";
+
+/// Opportunistically copy package 1033 (mini-python) from the global ISPM install to a local
+/// simics home directory. Package 1033 is required for Simics 7.28.0+ and is separate from the
+/// base package 1000. Returns `None` silently when 1033 is not installed (e.g. Simics 6).
+fn try_copy_mini_python<P: AsRef<Path>>(simics_home_dir: P) -> Option<ProjectPackage> {
+    let simics_home_dir = simics_home_dir.as_ref();
+    let global_pkgs = ispm::packages::list(&GlobalOptions::default()).ok()?;
+    let installed = global_pkgs.installed_packages.as_ref()?;
+    let python_pkg = installed
+        .iter()
+        .filter(|p| p.package_number == 1033)
+        .max_by(|a, b| {
+            Versioning::new(&a.version)
+                .unwrap_or_default()
+                .cmp(&Versioning::new(&b.version).unwrap_or_default())
+        })?;
+    let path = python_pkg.paths.first()?;
+    let dir_name = path.components().last()?.as_os_str().to_str()?.to_string();
+    copy_dir_contents(path, &simics_home_dir.join(&dir_name)).ok()?;
+    Some(
+        ProjectPackage::builder()
+            .package_number(1033)
+            .version(python_pkg.version.clone())
+            .build(),
+    )
+}
+
 /// An environment variable which, if set, causes package installation to default to local installation
 /// only
 pub const SIMICS_TEST_LOCAL_PACKAGES_ONLY_ENV: &str = "SIMICS_TEST_LOCAL_PACKAGES_ONLY";
@@ -379,6 +406,12 @@ impl TestEnv {
         }
 
         installed_packages.extend(packages);
+
+        // Opportunistically include package 1033 (mini-python) if available (Simics 7.28.0+).
+        // This is a no-op for Simics 6, which bundles Python inside package 1000.
+        if let Some(mini_python) = try_copy_mini_python(&simics_home_dir) {
+            installed_packages.insert(mini_python);
+        }
 
         if spec.install_all {
             if let Some(package_repo) = &spec.package_repo {
