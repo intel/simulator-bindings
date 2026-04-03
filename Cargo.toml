@@ -77,3 +77,9 @@ lto = true
 codegen-units = 1
 opt-level = 3
 debug = true
+
+[profile.dev.build-override]
+opt-level = 3
+
+[profile.release.build-override]
+opt-level = 3
