@@ -106,7 +106,7 @@ jobs:
 
       - name: Cache SIMICS Dependencies
         id: cache-simics-packages
-        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: ~/simics
           key: simics-linux-${{ matrix.package_version }}-${{ env.PUBLIC_SIMICS_ISPM_VERSION }}
@@ -195,7 +195,7 @@ jobs:
 
       - name: Cache MinGW
         id: cache-mingw
-        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: C:\MinGW\
           key: mingw-${{ env.MINGW_VERSION }}
@@ -222,7 +222,7 @@ jobs:
 
       - name: Cache SIMICS
         id: cache-simics-packages-windows
-        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
         with:
           path: |
             C:\ISPM\
