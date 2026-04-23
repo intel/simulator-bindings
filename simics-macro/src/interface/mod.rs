@@ -13,7 +13,7 @@ use std::{
     fs::{create_dir_all, write},
     hash::{Hash, Hasher},
     io::Write,
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::{Command, Stdio},
 };
 use syn::{
@@ -23,6 +23,19 @@ use syn::{
 
 // Constants now provided by simics-python-utils
 use simics_python_utils::{HOST_DIRNAME, PYTHON3_LDFLAGS_ENV};
+
+// TODO: refactor into a shared utility in simics-python-utils or simics-build-utils
+fn detect_simics_version_from_base(simics_base: &Path) -> Option<(u32, u32, u32)> {
+    let version_str = simics_base
+        .file_name()
+        .and_then(|n| n.to_str())
+        .and_then(|n| n.strip_prefix("simics-"))?;
+    let mut parts = version_str.split('.');
+    let major = parts.next()?.parse::<u32>().ok()?;
+    let minor = parts.next()?.parse::<u32>().ok()?;
+    let patch = parts.next()?.parse::<u32>().ok()?;
+    Some((major, minor, patch))
+}
 
 #[derive(Debug, Clone, FromMeta)]
 pub struct InterfaceAttr {
@@ -1035,26 +1048,41 @@ impl CInterface {
             })?;
 
         // /home/rhart/simics/simics-6.0.169/bin/mini-python \
-        //     /home/rhart/simics/simics-6.0.169/scripts/build/module_id.py --c-module-id \
+        //     /home/rhart/simics/simics-6.0.169/scripts/build/module_id.py \
         //     --output module_id.c --module-name tsffs-interface --classes  --components \
         //     --host-type linux64 --thread-safe yes --iface-py-module tsffs_interface \
         //     --py-iface-list pyiface-tsffs-interface-interface-list --py-ver 3 \
         //     --py-minor-ver 9 --user-build-id tsffs:1
         //
         // C:\Users\rhart\simics\simics-6.0.169\win64\bin\mini-python.exe \
-        //     C:\Users\rhart\simics\simics-6.0.169/scripts/build/module_id.py --c-module-id \
+        //     C:\Users\rhart\simics\simics-6.0.169/scripts/build/module_id.py \
         //     --output module_id.c --module-name tsffs-interface --classes "" --components \
         //     "" --host-type win64 --thread-safe yes --iface-py-module tsffs_interface \
         //     --py-iface-list pyiface-tsffs-interface-interface-list --py-ver 3 \
         //     --py-minor-ver 9 --user-build-id tsffs:1
-        Command::new(&mini_python)
-            .arg(
-                simics_base
-                    .join("scripts")
-                    .join("build")
-                    .join("module_id.py"),
-            )
-            .arg("--c-module-id")
+        let simics_version = detect_simics_version_from_base(&simics_base)
+            .ok_or_else(|| {
+                Error::custom(format!(
+                    "Unable to determine Simics version from base path {}; \
+                     expected directory name like simics-x.y.z",
+                    simics_base.display()
+                ))
+            })?;
+
+        let mut module_id_cmd = Command::new(&mini_python);
+        module_id_cmd.arg(
+            simics_base
+                .join("scripts")
+                .join("build")
+                .join("module_id.py"),
+        );
+        // Simics < 7.80.0 requires --c-module-id (6.x uses it to select C vs Python
+        // output; 7.0-7.79 has a bug where omitting it causes an AttributeError).
+        // 7.80.0+ removed the flag entirely.
+        if simics_version < (7, 80, 0) {
+            module_id_cmd.arg("--c-module-id");
+        }
+        module_id_cmd
             .arg("--output")
             .arg(interface_subdir.join(&module_id_c))
             .arg("--module-name")
