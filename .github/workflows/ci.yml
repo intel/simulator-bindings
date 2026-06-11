@@ -30,7 +30,7 @@ jobs:
         with:
           egress-policy: audit
 
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           fetch-depth: 0
           lfs: false
@@ -98,7 +98,7 @@ jobs:
             openssl-devel openssl-libs python3 python3-pip yamllint
           update-ca-trust
 
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           lfs: true
 
@@ -257,7 +257,7 @@ jobs:
           ispm.exe packages --install-bundle C:\simics-${{ matrix.simics_version }}-packages.ispm --non-interactive --trust-insecure-packages
           echo "Installed ISPM packages"
 
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           lfs: true
 
@@ -285,7 +285,7 @@ jobs:
             openssl-devel openssl-libs
           update-ca-trust
 
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           lfs: false
 
